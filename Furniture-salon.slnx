@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FurnitureSalon.Api/FurnitureSalon.Api.csproj" />
+    <Project Path="src/FurnitureSalon.Application/FurnitureSalon.Application.csproj" />
+    <Project Path="src/FurnitureSalon.Core/FurnitureSalon.Core.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/FurnitureSalon.xUnit/FurnitureSalon.xUnit.csproj" />
+  </Folder>
+</Solution>
