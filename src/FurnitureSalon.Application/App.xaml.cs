@@ -1,13 +1,25 @@
-﻿using System.Configuration;
-using System.Data;
+﻿using FurnitureSalon.Application.ViewModels;
+using FurnitureSalon.Application.Views;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 
 namespace FurnitureSalon.Applications;
 
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        ServiceCollection services = new();
+
+        services.AddTransient<LoginWindow>();
+        services.AddTransient<LoginViewModel>();
+
+        ServiceProvider serviceProvider = services.BuildServiceProvider();
+
+        var startupWindow = serviceProvider.GetRequiredService<LoginWindow>();
+        startupWindow.Show();
+    }
 }
 
