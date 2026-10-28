@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using FurnitureSalon.Core.Models;
+﻿using FurnitureSalon.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FurnitureSalon.Core.TempData;
+namespace FurnitureSalon.Api.Data;
 
 public partial class FurnitureSalonDbContext : DbContext
 {

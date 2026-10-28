@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using FurnitureSalon.Api.Models;
 
-namespace FurnitureSalon.Core.Models;
+namespace FurnitureSalon.Api.Models;
 
 public partial class User
 {

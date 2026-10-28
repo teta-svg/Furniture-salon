@@ -1,11 +1,12 @@
-﻿using System;
+﻿using FurnitureSalon.Api.Models;
+using System;
 using System.Collections.Generic;
 
-namespace FurnitureSalon.Core.Models;
+namespace FurnitureSalon.Api.Models;
 
-public partial class DeliveryNote
+public partial class ProductionOrder
 {
-    public int IdDeliveryNote { get; set; }
+    public int IdProductionOrder { get; set; }
 
     public int IdOrder { get; set; }
 
@@ -13,7 +14,7 @@ public partial class DeliveryNote
 
     public DateOnly CreationDate { get; set; }
 
-    public DateOnly? LoadingDate { get; set; }
+    public DateOnly? CompletionDate { get; set; }
 
     public virtual Employee IdEmployeeNavigation { get; set; } = null!;
 

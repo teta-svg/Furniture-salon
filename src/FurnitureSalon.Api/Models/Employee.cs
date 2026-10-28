@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace FurnitureSalon.Core.Models;
+﻿namespace FurnitureSalon.Api.Models;
 
 public partial class Employee
 {
