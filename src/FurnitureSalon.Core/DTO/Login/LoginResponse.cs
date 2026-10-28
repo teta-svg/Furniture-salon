@@ -7,5 +7,6 @@
         public string? Patronymic { get; set; }
         public string EmployeeRole { get; set; } = null!;
         public string Role { get; set; } = null!;
+        public bool IsSuccess { get; set; }
     }
 }
