@@ -16,10 +16,11 @@ public partial class App : System.Windows.Application
         services.AddTransient<LoginWindow>();
         services.AddTransient<LoginViewModel>();
 
+        services.AddHttpClient();
+
         ServiceProvider serviceProvider = services.BuildServiceProvider();
 
         var startupWindow = serviceProvider.GetRequiredService<LoginWindow>();
         startupWindow.Show();
     }
 }
-
