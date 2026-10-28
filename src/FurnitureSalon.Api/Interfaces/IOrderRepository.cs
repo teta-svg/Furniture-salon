@@ -5,5 +5,6 @@ namespace FurnitureSalon.Api.Interfaces
     public interface IOrderRepository
     {
         Task<List<Order>> GetOrdersAsync();
+        Task<List<Order>> SearchOrdersAsync(string? searchText);
     }
 }
