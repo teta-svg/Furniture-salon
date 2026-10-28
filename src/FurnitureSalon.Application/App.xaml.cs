@@ -1,4 +1,5 @@
-﻿using FurnitureSalon.Application.ViewModels;
+﻿using FurnitureSalon.Application.Shared;
+using FurnitureSalon.Application.ViewModels;
 using FurnitureSalon.Application.Views;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
@@ -16,7 +17,10 @@ public partial class App : System.Windows.Application
         services.AddTransient<LoginWindow>();
         services.AddTransient<LoginViewModel>();
 
-        services.AddHttpClient();
+        services.AddHttpClient<ApiClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://localhost:7298/");
+        });
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
 

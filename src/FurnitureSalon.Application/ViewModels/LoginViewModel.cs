@@ -59,7 +59,7 @@ namespace FurnitureSalon.Application.ViewModels
 
             try
             {
-                var response = await _apiClient.PostAsync<LoginRequest, LoginResponse>("api/auth/login", request);
+                var response = await _apiClient.PostAsync<LoginRequest, LoginResponse>("api/Auth/login", request);
 
                 if (response != null)
                 {
@@ -68,15 +68,13 @@ namespace FurnitureSalon.Application.ViewModels
 
                     // !!!!!открыть главное окно зактрыть окно входа!!!
                 }
-                else
+
+                if (response is null || !response.IsSuccess)
                 {
                     ErrorText = "Неверный логин или пароль.";
+                    return;
                 }
 
-            }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                ErrorText = "Неверный логин или пароль.";
             }
             catch (HttpRequestException)
             {

@@ -7,10 +7,9 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<FurnitureSalonDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("FurnitureSalon")));
 
-    options.UseSqlServer(builder.Configuration.GetConnectionString("FurnitureSalon"))
-
-);
+builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -27,5 +26,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.MapControllers();
 
 app.Run();

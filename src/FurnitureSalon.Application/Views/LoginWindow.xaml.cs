@@ -11,5 +11,11 @@ namespace FurnitureSalon.Application.Views
 
             DataContext = viewModel;
         }
+
+        private void PasswordInput_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is LoginViewModel vm)
+                vm.Password = PasswordInput.Password;
+        }
     }
 }

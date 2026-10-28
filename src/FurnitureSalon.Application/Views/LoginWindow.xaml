@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Title="Вход в систему"
         Width="440"
-        Height="480"
+        Height="500"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource WindowBgBrush}"
@@ -52,7 +52,8 @@
                            FontWeight="SemiBold"
                            Margin="0,16,0,5"/>
 
-                <PasswordBox x:Name="PasswordBox"
+                <PasswordBox x:Name="PasswordInput"
+                             PasswordChanged="PasswordInput_PasswordChanged"
                              Padding="10,8"
                              BorderBrush="{StaticResource BorderBrushSoft}"
                              BorderThickness="1"/>
@@ -65,7 +66,7 @@
 
                 <Button Content="Войти"
                         Height="40"
-                        Margin="0,28,0,0"
+                        Margin="0,4,0,0"
                         Background="{StaticResource PrimaryBrush}"
                         Foreground="White"
                         FontWeight="SemiBold"
