@@ -20,5 +20,14 @@ namespace FurnitureSalon.Application.Shared
 
             return await response.Content.ReadFromJsonAsync<TResponse>();
         }
+
+        public async Task<TResponse?> GetAsync<TResponse>(string endpoint)
+        {
+            using var response = await _httpClient.GetAsync(endpoint);
+
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<TResponse>();
+        }
     }
 }
