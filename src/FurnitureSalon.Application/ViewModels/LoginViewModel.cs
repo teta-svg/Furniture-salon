@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FurnitureSalon.Application.Shared;
+using FurnitureSalon.Applications;
 using FurnitureSalon.Core.DTO.Login;
 using System.Net.Http;
 
@@ -9,10 +10,12 @@ namespace FurnitureSalon.Application.ViewModels
     public partial class LoginViewModel : ObservableObject
     {
         private readonly ApiClient _apiClient;
+        private readonly IWindowService _windowService;
 
-        public LoginViewModel(ApiClient apiClient)
+        public LoginViewModel(ApiClient apiClient, IWindowService windowService)
         {
             _apiClient = apiClient;
+            _windowService = windowService;
         }
 
         [ObservableProperty]
@@ -61,12 +64,11 @@ namespace FurnitureSalon.Application.ViewModels
             {
                 var response = await _apiClient.PostAsync<LoginRequest, LoginResponse>("api/Auth/login", request);
 
-                if (response != null)
+                if (response.IsSuccess)
                 {
                     ErrorText = string.Empty;
 
-
-                    // !!!!!открыть главное окно зактрыть окно входа!!!
+                    _windowService.Show<MainWindow>(closeCurrent: true);
                 }
 
                 if (response is null || !response.IsSuccess)
