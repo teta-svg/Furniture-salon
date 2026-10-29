@@ -41,7 +41,8 @@ namespace FurnitureSalon.Application.ViewModels
         [NotifyCanExecuteChangedFor(nameof(EditOrderCommand))]
         private OrderListResponse? selectedOrder;
 
-        public List<string> Statuses { get; } =
+        [ObservableProperty]
+        private List<string> statuses =
             [
             "Все",
             "В производстве",
@@ -132,17 +133,17 @@ namespace FurnitureSalon.Application.ViewModels
             //await OpenOrderAsync(OrderEditorMode.Edit, SelectedOrder!.IdOrder);
         }
 
-        private async Task OpenOrderAsync(OrderEditorMode mode)
-        {
-            _windowService.ShowWindow<ConfigWindow>();
+        //private async Task OpenOrderAsync(OrderEditorMode mode)
+        //{
+        //    _windowService.ShowWindow<ConfigWindow>();
 
-            if (true)
-            {
-                if (string.IsNullOrWhiteSpace(SearchText) && SelectedStatus == "Все")
-                    await LoadOrdersAsync();
-                else
-                    await SearchAsync();
-            }
-        }
+        //    if (true)
+        //    {
+        //        if (string.IsNullOrWhiteSpace(SearchText) && SelectedStatus == "Все")
+        //            await LoadOrdersAsync();
+        //        else
+        //            await SearchAsync();
+        //    }
+        //}
     }
 }
