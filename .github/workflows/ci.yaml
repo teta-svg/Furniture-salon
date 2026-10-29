@@ -6,7 +6,6 @@ on:
     paths: ['src/**', 'test/**']
   pull_request:
     branches: [main, develop]
-  workflow_dispatch:
 
 jobs:
   build:
@@ -18,23 +17,37 @@ jobs:
           dotnet-version: '8.0.x'
       - run: dotnet restore
       - run: dotnet build --no-restore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: salon
+          path: |
+            **/bin/
+            **/obj/
+          retention-days: 14
 
   test-debug:
     runs-on: windows-latest
     needs: build
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - run: dotnet test -c Debug
-
-  test-release:
-    runs-on: windows-latest
+      - uses: actions/download-artifact@v4
+        with:
+          name: salon
+      - run: dotnet test -c ${{ matrix.configuration }} --no-build
+  
+  analyze:
     needs: build
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - run: dotnet test -c Release
+      - run: dotnet tool install -g dotnet-format
+      - run: dotnet format
