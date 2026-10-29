@@ -14,15 +14,20 @@ namespace FurnitureSalon.Application.ViewModels
 
         private readonly ApiClient _apiClient;
         private readonly ICurrentUser _currentUser;
+        private readonly IConfigHelper _configHelper;
 
-        private int _orderId;
+        private int? _orderId;
         private string _orderStatus = string.Empty;
         private OrderItemRow? _editingRow;
 
-        public ConfigViewModel(ApiClient apiClient, ICurrentUser currentUser)
+        public ConfigViewModel(ApiClient apiClient, ICurrentUser currentUser, IConfigHelper configHelper)
         {
             _apiClient = apiClient;
             _currentUser = currentUser;
+            _configHelper = configHelper;
+
+            _orderId = _configHelper.IdOrder;
+            Mode = _configHelper.EditorMode;
 
             Items.CollectionChanged += (_, _) => RecalculateTotal();
 
@@ -31,27 +36,17 @@ namespace FurnitureSalon.Application.ViewModels
 
         public event Action<bool>? CloseRequested;
 
-        public void Initialize(OrderEditorMode mode, int orderId = 0)
-        {
-            _orderId = orderId;
-            Mode = mode;
-
-            UpdateHeader();
-        }
-
-        // режим и заголовок
-
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanEdit))]
         [NotifyPropertyChangedFor(nameof(IsClientTypeEditable))]
         [NotifyPropertyChangedFor(nameof(CloseButtonText))]
-        private OrderEditorMode _mode = OrderEditorMode.Create;
+        private OrderEditorMode mode = OrderEditorMode.Create;
 
         [ObservableProperty]
-        private string _title = string.Empty;
+        private string title = string.Empty;
 
         [ObservableProperty]
-        private string _subtitle = string.Empty;
+        private string subtitle = string.Empty;
 
         public bool CanEdit => Mode != OrderEditorMode.View;
 
@@ -82,7 +77,8 @@ namespace FurnitureSalon.Application.ViewModels
             }
         }
 
-        public List<string> ClientTypes { get; } = [PhysicalClientType, LegalClientType];
+        [ObservableProperty]
+        private List<string> clientTypes = [PhysicalClientType, LegalClientType];
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsPhysicalClient))]
@@ -124,9 +120,6 @@ namespace FurnitureSalon.Application.ViewModels
         [ObservableProperty]
         private string _contactPatronymic = string.Empty;
 
-
-
-
         [ObservableProperty]
         private string _deliveryCity = string.Empty;
 
@@ -139,9 +132,6 @@ namespace FurnitureSalon.Application.ViewModels
         [ObservableProperty]
         private string _deliveryApartment = string.Empty;
 
-
-
-
         [ObservableProperty]
         private List<LookupItem> _models = [];
 
@@ -152,9 +142,6 @@ namespace FurnitureSalon.Application.ViewModels
         private List<LookupItem> _mechanisms = [];
 
         public ObservableCollection<StorageModuleOption> StorageModules { get; } = [];
-
-
-
 
         [ObservableProperty]
         private LookupItem? _selectedModel;
@@ -552,7 +539,7 @@ namespace FurnitureSalon.Application.ViewModels
         {
             return new OrderEditor
             {
-                IdOrder = _orderId,
+                IdOrder = (int)_orderId!,
                 IdEmployee = _currentUser.User?.IdEmployee ?? 0,
                 ClientType = SelectedClientType,
                 Phone = Phone.Trim(),
