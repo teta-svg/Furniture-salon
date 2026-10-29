@@ -43,14 +43,14 @@ namespace FurnitureSalon.Application.ViewModels
 
         [ObservableProperty]
         private List<string> statuses =
-            [
+        [
             "Все",
             "В производстве",
             "Ожидает производства",
             "Готов",
             "Отменён",
             "Доставлен"
-            ];
+        ];
 
         [ObservableProperty]
         private string? employeeName;
@@ -61,12 +61,11 @@ namespace FurnitureSalon.Application.ViewModels
         [ObservableProperty]
         private string? employeeInitial;
 
-        [RelayCommand]
-        private async Task LoadOrdersAsync()
+        private async Task ExecuteApiRequestAsync(Func<Task<List<OrderListResponse>?>> execute)
         {
             try
             {
-                var response = await _apiClient.GetAsync<List<OrderListResponse>>("api/orders");
+                var response = await execute();
 
                 Orders = response ?? [];
             }
@@ -84,6 +83,14 @@ namespace FurnitureSalon.Application.ViewModels
             }
         }
 
+
+        [RelayCommand]
+        private async Task LoadOrdersAsync()
+        {
+            await ExecuteApiRequestAsync(() =>_apiClient.GetAsync<List<OrderListResponse>>("api/orders"));
+           
+        }
+
         [RelayCommand]
         private async Task SearchAsync()
         {
@@ -93,24 +100,7 @@ namespace FurnitureSalon.Application.ViewModels
                 Status = SelectedStatus == "Все" ? null : SelectedStatus
             };
 
-            try
-            {
-                var response = await _apiClient.PostAsync<OrderSearchRequest, List<OrderListResponse>>("api/search/orders", request);
-
-                Orders = response ?? [];
-            }
-            catch (HttpRequestException)
-            {
-                MessageBox.Show("Не удалось связаться с сервером.");
-            }
-            catch (TaskCanceledException)
-            {
-                MessageBox.Show("Время ожидания ответа истекло.");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка: {ex.Message}");
-            }
+            await ExecuteApiRequestAsync(() => _apiClient.PostAsync<OrderSearchRequest, List<OrderListResponse>>("api/search/orders", request));
         }
 
         [RelayCommand]
