@@ -1,19 +1,19 @@
 name: ci
 
 on:
-    push:
-        branches: [main, develop]
-        paths: ['src/**', 'test/**']
-    pull_request:
-        branches: [main, develop]
-    workflow_dispatch:
+  push:
+    branches: [main, develop]
+    paths: ['src/**', 'test/**']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
-    build:
-        runs-on: windows-latest
-        steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-dotnet@v4
-              with:
-                dotnet-version: '8.0.x'
-            - run: dotnet build
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet build
