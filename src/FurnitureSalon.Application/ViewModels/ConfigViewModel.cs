@@ -4,6 +4,7 @@ using FurnitureSalon.Application.Shared;
 using FurnitureSalon.Core.DTO.Order;
 using System.Collections.ObjectModel;
 using System.Net.Http;
+using System.Windows;
 
 namespace FurnitureSalon.Application.ViewModels
 {
@@ -243,34 +244,9 @@ namespace FurnitureSalon.Application.ViewModels
             TotalText = $"Итого: {Money(Items.Sum(i => i.TotalPrice))}";
         }
 
-
-
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(HasError))]
-        private string _errorText = string.Empty;
-
-        public bool HasError => !string.IsNullOrEmpty(ErrorText);
-
-        private void ShowError(Exception ex)
-        {
-            ErrorText = ex switch
-            {
-                HttpRequestException http when http.StatusCode is null => "Не удалось связаться с сервером.",
-                HttpRequestException http => http.Message,
-                TaskCanceledException => "Время ожидания ответа истекло.",
-                _ => $"Ошибка: {ex.Message}"
-            };
-        }
-
-
-
-
         [RelayCommand]
         private async Task LoadAsync()
         {
-            ErrorText = string.Empty;
-
             try
             {
                 var lookups = await _apiClient.GetAsync<OrderLookupsResponse>("api/orders/lookups")
@@ -300,7 +276,7 @@ namespace FurnitureSalon.Application.ViewModels
 
                 if (order is null)
                 {
-                    ErrorText = "Заказ не найден.";
+                    MessageBox.Show("Заказ не найден.");
                     return;
                 }
 
@@ -308,7 +284,7 @@ namespace FurnitureSalon.Application.ViewModels
             }
             catch (Exception ex)
             {
-                ShowError(ex);
+                MessageBox.Show("Произошла ошибка при загрузке заказа: " + ex.Message);
             }
         }
 
@@ -370,17 +346,16 @@ namespace FurnitureSalon.Application.ViewModels
         [RelayCommand]
         private void AddItem()
         {
-            ErrorText = string.Empty;
 
             if (SelectedModel is null || SelectedFabric is null || SelectedMechanism is null)
             {
-                ErrorText = "Выберите модель, категорию ткани и механизм трансформации.";
+                MessageBox.Show("Выберите модель, категорию ткани и механизм трансформации.");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(Color))
             {
-                ErrorText = "Укажите цвет.";
+                MessageBox.Show("Укажите цвет.");
                 return;
             }
 
@@ -388,19 +363,19 @@ namespace FurnitureSalon.Application.ViewModels
                 || !TryParsePositive(WidthText, out int width)
                 || !TryParsePositive(HeightText, out int height))
             {
-                ErrorText = "Размеры должны быть целыми положительными числами.";
+                MessageBox.Show("Размеры должны быть целыми положительными числами.");
                 return;
             }
 
             if (!TryParsePositive(QuantityText, out int quantity))
             {
-                ErrorText = "Количество должно быть целым числом больше нуля.";
+                MessageBox.Show("Количество должно быть целым числом больше нуля.");
                 return;
             }
 
             if (PlannedDate is null)
             {
-                ErrorText = "Выберите плановую дату готовности.";
+                MessageBox.Show("Выберите плановую дату готовности.");
                 return;
             }
 
@@ -408,7 +383,7 @@ namespace FurnitureSalon.Application.ViewModels
 
             if (_editingRow is null && plannedDate < DateOnly.FromDateTime(DateTime.Today))
             {
-                ErrorText = "Плановая дата готовности не может быть в прошлом.";
+                MessageBox.Show("Плановая дата готовности не может быть в прошлом.");
                 return;
             }
 
@@ -563,19 +538,17 @@ namespace FurnitureSalon.Application.ViewModels
         [RelayCommand]
         private async Task SaveAsync()
         {
-            ErrorText = string.Empty;
-
             string? error = ValidateOrder();
 
             if (error is not null)
             {
-                ErrorText = error;
+                MessageBox.Show(error);
                 return;
             }
 
             if (Mode == OrderEditorMode.Create && _currentUser.User is null)
             {
-                ErrorText = "Не удалось определить сотрудника. Войдите в систему заново.";
+                MessageBox.Show("Не удалось определить сотрудника. Войдите в систему заново.");
                 return;
             }
 
@@ -592,7 +565,7 @@ namespace FurnitureSalon.Application.ViewModels
             }
             catch (Exception ex)
             {
-                ShowError(ex);
+                MessageBox.Show("Произошла ошибка при сохранении заказа: " + ex.Message);
             }
         }
 
