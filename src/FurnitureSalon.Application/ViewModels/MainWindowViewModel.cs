@@ -19,6 +19,12 @@ namespace FurnitureSalon.Application.ViewModels
             _apiClient = apiClient;
             _windowService = windowService;
             _currentUser = currentUser;
+
+            EmployeeName = $"{_currentUser.User?.Surname} {_currentUser.User?.Name.Trim()[0]}. " +
+                $"{(!string.IsNullOrWhiteSpace(_currentUser.User?.Patronymic) 
+                ? $"{_currentUser.User?.Patronymic.Trim()[0]}." : string.Empty)}".Trim();
+            EmployeeInitial = $"{_currentUser.User?.Surname.Trim()[0]}";
+            EmployeeRole = _currentUser.User?.EmployeeRole;
         }
 
         [ObservableProperty]
@@ -45,28 +51,14 @@ namespace FurnitureSalon.Application.ViewModels
             "Доставлен"
             ];
 
-        public string EmployeeName
-        {
-            get
-            {
-                var user = _currentUser.User;
-                if (user is null) return string.Empty;
+        [ObservableProperty]
+        private string? employeeName;
 
-                string initials = string.Concat(
-                    new[] { user.Name, user.Patronymic }
-                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                        .Select(s => $"{s.Trim()[0]}. "));
+        [ObservableProperty]
+        private string? employeeRole;
 
-                return $"{user.Surname} {initials}".Trim();
-            }
-        }
-
-        public string EmployeeRole => _currentUser.User?.EmployeeRole ?? string.Empty;
-
-        public string EmployeeInitial =>
-            string.IsNullOrWhiteSpace(_currentUser.User?.Surname)
-                ? "?"
-                : _currentUser.User!.Surname.Trim()[0].ToString().ToUpper();
+        [ObservableProperty]
+        private string? employeeInitial;
 
         [RelayCommand]
         private async Task LoadOrdersAsync()
@@ -123,7 +115,7 @@ namespace FurnitureSalon.Application.ViewModels
         [RelayCommand]
         private async Task CreateOrderAsync()
         {
-            await OpenOrderAsync(OrderEditorMode.Create, 0);
+            //await OpenOrderAsync(OrderEditorMode.Create, 0);
         }
 
         private bool HasSelectedOrder() => SelectedOrder is not null;
@@ -131,16 +123,16 @@ namespace FurnitureSalon.Application.ViewModels
         [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
         private async Task ViewOrderAsync()
         {
-            await OpenOrderAsync(OrderEditorMode.View, SelectedOrder!.IdOrder);
+            //await OpenOrderAsync(OrderEditorMode.View, SelectedOrder!.IdOrder);
         }
 
         [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
         private async Task EditOrderAsync()
         {
-            await OpenOrderAsync(OrderEditorMode.Edit, SelectedOrder!.IdOrder);
+            //await OpenOrderAsync(OrderEditorMode.Edit, SelectedOrder!.IdOrder);
         }
 
-        private async Task OpenOrderAsync(OrderEditorMode mode, int orderId)
+        private async Task OpenOrderAsync(OrderEditorMode mode)
         {
             _windowService.ShowWindow<ConfigWindow>();
 
