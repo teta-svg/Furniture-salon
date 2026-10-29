@@ -18,9 +18,11 @@ public partial class App : System.Windows.Application
         services.AddTransient<LoginViewModel>();
         services.AddSingleton<MainWindow>();
         services.AddSingleton<MainWindowViewModel>();
+        services.AddTransient<ConfigWindow>();
         services.AddTransient<ConfigViewModel>();
         services.AddTransient<IWindowService, WindowService>();
         services.AddSingleton<ICurrentUser, CurrentUser>();
+        services.AddSingleton<IConfigHelper, ConfigHelper>();
 
         services.AddHttpClient<ApiClient>(client =>
         {

@@ -13,12 +13,14 @@ namespace FurnitureSalon.Application.ViewModels
         private readonly ApiClient _apiClient;
         private readonly IWindowService _windowService;
         private readonly ICurrentUser _currentUser;
+        private readonly IConfigHelper _configHelper;
 
-        public MainWindowViewModel(ApiClient apiClient, IWindowService windowService, ICurrentUser currentUser)
+        public MainWindowViewModel(ApiClient apiClient, IWindowService windowService, ICurrentUser currentUser, IConfigHelper configHelper)
         {
             _apiClient = apiClient;
             _windowService = windowService;
             _currentUser = currentUser;
+            _configHelper = configHelper;
 
             EmployeeName = $"{_currentUser.User?.Surname} {_currentUser.User?.Name.Trim()[0]}. " +
                 $"{(!string.IsNullOrWhiteSpace(_currentUser.User?.Patronymic) 
@@ -88,7 +90,6 @@ namespace FurnitureSalon.Application.ViewModels
         private async Task LoadOrdersAsync()
         {
             await ExecuteApiRequestAsync(() =>_apiClient.GetAsync<List<OrderListResponse>>("api/orders"));
-           
         }
 
         [RelayCommand]
@@ -104,36 +105,30 @@ namespace FurnitureSalon.Application.ViewModels
         }
 
         [RelayCommand]
-        private async Task CreateOrderAsync()
+        private void CreateOrder()
         {
-            //await OpenOrderAsync(OrderEditorMode.Create, 0);
+            OpenConfigWindow(OrderEditorMode.Create, null);
         }
 
         private bool HasSelectedOrder() => SelectedOrder is not null;
 
         [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
-        private async Task ViewOrderAsync()
+        private void ViewOrder()
         {
-            //await OpenOrderAsync(OrderEditorMode.View, SelectedOrder!.IdOrder);
+           OpenConfigWindow(OrderEditorMode.View, SelectedOrder?.IdOrder);
         }
 
         [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
-        private async Task EditOrderAsync()
+        private void EditOrder()
         {
-            //await OpenOrderAsync(OrderEditorMode.Edit, SelectedOrder!.IdOrder);
+            OpenConfigWindow(OrderEditorMode.Edit, SelectedOrder?.IdOrder);
         }
 
-        //private async Task OpenOrderAsync(OrderEditorMode mode)
-        //{
-        //    _windowService.ShowWindow<ConfigWindow>();
-
-        //    if (true)
-        //    {
-        //        if (string.IsNullOrWhiteSpace(SearchText) && SelectedStatus == "Все")
-        //            await LoadOrdersAsync();
-        //        else
-        //            await SearchAsync();
-        //    }
-        //}
+        private void OpenConfigWindow(OrderEditorMode editorMode, int? idOrder)
+        {
+            _configHelper.EditorMode = editorMode;
+            _configHelper.IdOrder = idOrder;
+            _windowService.ShowWindow<ConfigWindow>();
+        }
     }
 }
