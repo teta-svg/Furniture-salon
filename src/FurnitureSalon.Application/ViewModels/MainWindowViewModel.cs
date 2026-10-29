@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FurnitureSalon.Application.Shared;
+using FurnitureSalon.Application.Views;
 using FurnitureSalon.Core.DTO.Order;
 using System.Net.Http;
 using System.Windows;
@@ -27,6 +28,11 @@ namespace FurnitureSalon.Application.ViewModels
         [ObservableProperty]
         private string? selectedStatus = "Все";
 
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ViewOrderCommand))]
+        [NotifyCanExecuteChangedFor(nameof(EditOrderCommand))]
+        private OrderListResponse? selectedOrder;
+
         public List<string> Statuses { get; } =
             [
             "Все",
@@ -36,6 +42,29 @@ namespace FurnitureSalon.Application.ViewModels
             "Отменён",
             "Доставлен"
             ];
+
+        public string EmployeeName
+        {
+            get
+            {
+                var user = CurrentUser.User;
+                if (user is null) return string.Empty;
+
+                string initials = string.Concat(
+                    new[] { user.Name, user.Patronymic }
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .Select(s => $"{s.Trim()[0]}. "));
+
+                return $"{user.Surname} {initials}".Trim();
+            }
+        }
+
+        public string EmployeeRole => CurrentUser.User?.EmployeeRole ?? string.Empty;
+
+        public string EmployeeInitial =>
+            string.IsNullOrWhiteSpace(CurrentUser.User?.Surname)
+                ? "?"
+                : CurrentUser.User!.Surname.Trim()[0].ToString().ToUpper();
 
         [RelayCommand]
         private async Task LoadOrdersAsync()
@@ -86,6 +115,40 @@ namespace FurnitureSalon.Application.ViewModels
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        private async Task CreateOrderAsync()
+        {
+            await OpenOrderAsync(OrderEditorMode.Create, 0);
+        }
+
+        private bool HasSelectedOrder() => SelectedOrder is not null;
+
+        [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
+        private async Task ViewOrderAsync()
+        {
+            await OpenOrderAsync(OrderEditorMode.View, SelectedOrder!.IdOrder);
+        }
+
+        [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
+        private async Task EditOrderAsync()
+        {
+            await OpenOrderAsync(OrderEditorMode.Edit, SelectedOrder!.IdOrder);
+        }
+
+        private async Task OpenOrderAsync(OrderEditorMode mode, int orderId)
+        {
+            bool? saved = _windowService.ShowDialog<ConfigWindow, ConfigViewModel>(
+                viewModel => viewModel.Initialize(mode, orderId));
+
+            if (saved == true)
+            {
+                if (string.IsNullOrWhiteSpace(SearchText) && SelectedStatus == "Все")
+                    await LoadOrdersAsync();
+                else
+                    await SearchAsync();
             }
         }
     }

@@ -50,28 +50,25 @@
                     <StackPanel VerticalAlignment="Center"               
                                 HorizontalAlignment="Right"                                
                                 Margin="0,0,12,0">
-                        <TextBlock x:Name="EmployeeNameText"
-                                   Text="Иванов И. И."
+                        <TextBlock Text="{Binding EmployeeName}"
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource TextBrush}"
                                    HorizontalAlignment="Right"/>
 
-                        <TextBlock x:Name="EmployeeRoleText"
-                                   Text="Администратор"
-                                   FontSize="12"                 
-                                   Foreground="{StaticResource MutedBrush}"                   
+                        <TextBlock Text="{Binding EmployeeRole}"
+                                   FontSize="12"
+                                   Foreground="{StaticResource MutedBrush}"
                                    HorizontalAlignment="Right"/>
                     </StackPanel>
 
                     <Border Width="36" Height="36"
                             CornerRadius="18"
                             Background="#C8E6C9">
-                        <TextBlock x:Name="EmployeeInitialText"                   
-                                   Text="И"                   
-                                   FontWeight="SemiBold"                  
-                                   FontSize="15"                   
-                                   Foreground="{StaticResource PrimaryDarkBrush}"                  
-                                   HorizontalAlignment="Center"                   
+                        <TextBlock Text="{Binding EmployeeInitial}"
+                                   FontWeight="SemiBold"
+                                   FontSize="15"         
+                                   Foreground="{StaticResource PrimaryDarkBrush}"          
+                                   HorizontalAlignment="Center"           
                                    VerticalAlignment="Center"/>
                     </Border>
 
@@ -101,7 +98,8 @@
                 <Button Content="＋  Создать заказ"
                         Style="{StaticResource PrimaryButton}"
                         HorizontalAlignment="Right"
-                        VerticalAlignment="Center"/>
+                        VerticalAlignment="Center"
+                        Command="{Binding CreateOrderCommand}"/>
             </Grid>
 
             <Border Grid.Row="1"
@@ -133,7 +131,7 @@
                     Style="{StaticResource Card}"
                     Padding="8">
 
-                <ListBox x:Name="OrdersList" ItemsSource="{Binding Orders}" Background="Transparent" BorderThickness="0" SelectionMode="Single" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox x:Name="OrdersList" ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder, Mode=TwoWay}" Background="Transparent" BorderThickness="0" SelectionMode="Single" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
                             <Setter Property="Padding" Value="0"/>
@@ -236,16 +234,12 @@
                 <StackPanel Orientation="Horizontal"
                             HorizontalAlignment="Right">
                     <Button Content="Открыть заказ"
-                            Style="{StaticResource GhostButton}"/>
-
-                    <Button Content="Выставить счёт"
-                            Style="{StaticResource GhostButton}"/>
-
-                    <Button Content="Принять платёж"
-                            Style="{StaticResource SecondaryButton}"/>
+                            Style="{StaticResource GhostButton}"
+                            Command="{Binding ViewOrderCommand}"/>
 
                     <Button Content="Изменить заказ"
-                            Style="{StaticResource PrimaryButton}"/>
+                            Style="{StaticResource PrimaryButton}"
+                            Command="{Binding EditOrderCommand}"/>
                 </StackPanel>
             </Grid>
         </Grid>

@@ -18,6 +18,7 @@ public partial class App : System.Windows.Application
         services.AddTransient<LoginViewModel>();
         services.AddSingleton<MainWindow>();
         services.AddSingleton<MainWindowViewModel>();
+        services.AddTransient<ConfigViewModel>();
         services.AddTransient<IWindowService, WindowService>();
 
         services.AddHttpClient<ApiClient>(client =>
