@@ -62,14 +62,8 @@ namespace FurnitureSalon.Application.ViewModels
 
             try
             {
-                var response = await _apiClient.PostAsync<LoginRequest, LoginResponse>("api/Auth/login", request);
-
-                if (response.IsSuccess)
-                {
-                    ErrorText = string.Empty;
-
-                    _windowService.Show<MainWindow>(closeCurrent: true);
-                }
+                var response =
+                    await _apiClient.PostAsync<LoginRequest, LoginResponse>("api/Auth/login", request);
 
                 if (response is null || !response.IsSuccess)
                 {
@@ -77,6 +71,11 @@ namespace FurnitureSalon.Application.ViewModels
                     return;
                 }
 
+                CurrentUser.Set(response);
+
+                ErrorText = string.Empty;
+
+                _windowService.Show<MainWindow>(closeCurrent: true);
             }
             catch (HttpRequestException)
             {

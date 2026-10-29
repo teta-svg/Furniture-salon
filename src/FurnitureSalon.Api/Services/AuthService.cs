@@ -21,6 +21,7 @@ namespace FurnitureSalon.Api.Services
 
             if (user != null && user.Password == request.Password)
             {
+                response.IdEmployee = user.IdEmployee;
                 response.Surname = user.IdEmployeeNavigation.Surname;
                 response.Name = user.IdEmployeeNavigation.Name;
                 response.Patronymic = user.IdEmployeeNavigation.Patronymic;
