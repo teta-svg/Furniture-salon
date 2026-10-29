@@ -12,11 +12,13 @@ namespace FurnitureSalon.Application.ViewModels
     {
         private readonly ApiClient _apiClient;
         private readonly IWindowService _windowService;
+        private readonly ICurrentUser _currentUser;
 
-        public MainWindowViewModel(ApiClient apiClient, IWindowService windowService)
+        public MainWindowViewModel(ApiClient apiClient, IWindowService windowService, ICurrentUser currentUser)
         {
             _apiClient = apiClient;
             _windowService = windowService;
+            _currentUser = currentUser;
         }
 
         [ObservableProperty]
@@ -47,7 +49,7 @@ namespace FurnitureSalon.Application.ViewModels
         {
             get
             {
-                var user = CurrentUser.User;
+                var user = _currentUser.User;
                 if (user is null) return string.Empty;
 
                 string initials = string.Concat(
@@ -59,12 +61,12 @@ namespace FurnitureSalon.Application.ViewModels
             }
         }
 
-        public string EmployeeRole => CurrentUser.User?.EmployeeRole ?? string.Empty;
+        public string EmployeeRole => _currentUser.User?.EmployeeRole ?? string.Empty;
 
         public string EmployeeInitial =>
-            string.IsNullOrWhiteSpace(CurrentUser.User?.Surname)
+            string.IsNullOrWhiteSpace(_currentUser.User?.Surname)
                 ? "?"
-                : CurrentUser.User!.Surname.Trim()[0].ToString().ToUpper();
+                : _currentUser.User!.Surname.Trim()[0].ToString().ToUpper();
 
         [RelayCommand]
         private async Task LoadOrdersAsync()
@@ -140,10 +142,9 @@ namespace FurnitureSalon.Application.ViewModels
 
         private async Task OpenOrderAsync(OrderEditorMode mode, int orderId)
         {
-            bool? saved = _windowService.ShowDialog<ConfigWindow, ConfigViewModel>(
-                viewModel => viewModel.Initialize(mode, orderId));
+            _windowService.ShowWindow<ConfigWindow>();
 
-            if (saved == true)
+            if (true)
             {
                 if (string.IsNullOrWhiteSpace(SearchText) && SelectedStatus == "Все")
                     await LoadOrdersAsync();

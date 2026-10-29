@@ -20,6 +20,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<ConfigViewModel>();
         services.AddTransient<IWindowService, WindowService>();
+        services.AddSingleton<ICurrentUser, CurrentUser>();
 
         services.AddHttpClient<ApiClient>(client =>
         {

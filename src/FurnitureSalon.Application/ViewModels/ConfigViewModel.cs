@@ -13,14 +13,16 @@ namespace FurnitureSalon.Application.ViewModels
         private const string LegalClientType = "Юридическое лицо";
 
         private readonly ApiClient _apiClient;
+        private readonly ICurrentUser _currentUser;
 
         private int _orderId;
         private string _orderStatus = string.Empty;
         private OrderItemRow? _editingRow;
 
-        public ConfigViewModel(ApiClient apiClient)
+        public ConfigViewModel(ApiClient apiClient, ICurrentUser currentUser)
         {
             _apiClient = apiClient;
+            _currentUser = currentUser;
 
             Items.CollectionChanged += (_, _) => RecalculateTotal();
 
@@ -551,7 +553,7 @@ namespace FurnitureSalon.Application.ViewModels
             return new OrderEditor
             {
                 IdOrder = _orderId,
-                IdEmployee = CurrentUser.User?.IdEmployee ?? 0,
+                IdEmployee = _currentUser.User?.IdEmployee ?? 0,
                 ClientType = SelectedClientType,
                 Phone = Phone.Trim(),
                 Surname = Surname,
@@ -584,7 +586,7 @@ namespace FurnitureSalon.Application.ViewModels
                 return;
             }
 
-            if (Mode == OrderEditorMode.Create && CurrentUser.User is null)
+            if (Mode == OrderEditorMode.Create && _currentUser.User is null)
             {
                 ErrorText = "Не удалось определить сотрудника. Войдите в систему заново.";
                 return;
