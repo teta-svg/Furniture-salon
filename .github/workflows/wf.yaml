@@ -2,7 +2,7 @@ name: wf
 
 on:
   schedule:
-    - cron: '* * * * *'
+    - cron: '  * * * *'
 
 jobs:
     print:
