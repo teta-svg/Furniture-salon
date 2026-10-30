@@ -1,0 +1,11 @@
+name: wf
+
+on:
+  schedule:
+    - cron: '1 * * * *'
+
+jobs:
+    print:
+        runs-on: windows-latest
+        steps:
+            - run: echo "автор ${{ github.actor }}"
