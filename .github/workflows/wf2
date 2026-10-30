@@ -1,4 +1,4 @@
-name: wf
+name: wf2
 
 on:
   schedule:
