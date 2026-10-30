@@ -21,13 +21,13 @@ jobs:
       - run: dotnet build -c ${{ matrix.configuration }} --no-restore
       - uses: actions/upload-artifact@v4
         with:
-          name: salon
+          name: salon-${{ matrix.configuration }}
           path: |
             **/bin/
             **/obj/
           retention-days: 14
 
-  test-debug:
+  test:
     runs-on: windows-latest
     needs: build
     strategy:
@@ -40,8 +40,13 @@ jobs:
           dotnet-version: '8.0.x'
       - uses: actions/download-artifact@v4
         with:
-          name: salon
-      - run: dotnet test -c ${{ matrix.configuration }} --no-build
+          name: salon-${{ matrix.configuration }}
+      - run: dotnet test -c ${{ matrix.configuration }} --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-${{ matrix.configuration }}
+          path: "**/TestResults/**/coverage.cobertura.xml"
+          retention-days: 14
   
   analyze:
     needs: build
