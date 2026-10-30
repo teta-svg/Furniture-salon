@@ -41,7 +41,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: salon-${{ matrix.configuration }}
-      - run: dotnet test -c ${{ matrix.configuration }} --no-build dotnet test -c ${{ matrix.configuration }} --no-build --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+          path: .
+      - run: dotnet test -c ${{ matrix.configuration }} --no-build --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
       - uses: actions/upload-artifact@v4
         with:
           name: code-coverage-${{ matrix.configuration }}
