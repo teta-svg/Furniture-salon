@@ -90,6 +90,8 @@ namespace FurnitureSalon.Application.ViewModels
 
         public bool IsLegalClient => SelectedClientType == LegalClientType;
 
+        #region поля для данных клиента 
+
         [ObservableProperty]
         private string _phone = string.Empty;
 
@@ -101,7 +103,6 @@ namespace FurnitureSalon.Application.ViewModels
 
         [ObservableProperty]
         private string _patronymic = string.Empty;
-
 
         [ObservableProperty]
         private string _companyName = string.Empty;
@@ -121,6 +122,10 @@ namespace FurnitureSalon.Application.ViewModels
         [ObservableProperty]
         private string _contactPatronymic = string.Empty;
 
+        #endregion
+
+        #region поля для данных доставки
+
         [ObservableProperty]
         private string _deliveryCity = string.Empty;
 
@@ -132,6 +137,10 @@ namespace FurnitureSalon.Application.ViewModels
 
         [ObservableProperty]
         private string _deliveryApartment = string.Empty;
+
+        #endregion
+
+        #region поля для конфигурации заказа
 
         [ObservableProperty]
         private List<LookupItem> _models = [];
@@ -167,6 +176,8 @@ namespace FurnitureSalon.Application.ViewModels
 
         [ObservableProperty]
         private string _quantityText = "1";
+
+        #endregion
 
         [ObservableProperty]
         private DateTime? _plannedDate = DateTime.Today.AddDays(30);
