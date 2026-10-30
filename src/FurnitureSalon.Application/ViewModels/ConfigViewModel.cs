@@ -189,10 +189,14 @@ namespace FurnitureSalon.Application.ViewModels
         public string AddItemButtonText =>
             IsEditingItem ? "Сохранить изменения позиции" : "Добавить конфигурацию в заказ";
 
-        partial void OnSelectedModelChanged(LookupItem? value) => UpdateConfigurationPrice();
-        partial void OnSelectedFabricChanged(LookupItem? value) => UpdateConfigurationPrice();
-        partial void OnSelectedMechanismChanged(LookupItem? value) => UpdateConfigurationPrice();
-        partial void OnQuantityTextChanged(string value) => UpdateConfigurationPrice();
+        partial void OnSelectedModelChanged(LookupItem? value) 
+            => UpdateConfigurationPrice();
+        partial void OnSelectedFabricChanged(LookupItem? value)
+            => UpdateConfigurationPrice();
+        partial void OnSelectedMechanismChanged(LookupItem? value) 
+            => UpdateConfigurationPrice();
+        partial void OnQuantityTextChanged(string value)
+            => UpdateConfigurationPrice();
 
 
 
