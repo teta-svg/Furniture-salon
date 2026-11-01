@@ -11,6 +11,12 @@
         public OrderDto Order { get; set; } = new();
     }
 
+    public class OrderResponse
+    {
+        public int OrderId { get; set; }
+        public OrderDto Order { get; set; } = new();
+    }
+
     public class OrderDto
     {
         public ClientDto Client { get; set; } = new();
