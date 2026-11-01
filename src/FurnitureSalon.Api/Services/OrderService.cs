@@ -122,9 +122,9 @@ namespace FurnitureSalon.Api.Services
 
             return orderListResponse;
         }
-        public async Task<OrderLookupsResponse> GetLookupsAsync()
+        public async Task<OrderDictionariesResponse> GetLookupsAsync()
         {
-            return new OrderLookupsResponse
+            return new OrderDictionariesResponse
             {
                 Models = (await _orderRepository.GetModelsAsync())
                     .Select(m => new LookupItem { Id = m.IdModel, Name = m.ModelName, Price = m.BasePrice })
@@ -141,7 +141,7 @@ namespace FurnitureSalon.Api.Services
             };
         }
 
-        public async Task<OrderEditor?> GetOrderForEditAsync(int id)
+        public async Task<OrderResponse?> GetOrderByIdAsync(int id)
         {
             Order? order = await _orderRepository.GetOrderByIdAsync(id);
 
@@ -150,61 +150,63 @@ namespace FurnitureSalon.Api.Services
 
             var client = order.IdClientNavigation;
 
-            var editor = new OrderEditor
+            var response = new OrderResponse
             {
-                IdOrder = order.IdOrder,
-                IdEmployee = order.IdEmployee,
-                CreationDate = order.CreationDate,
-                TotalPrice = order.TotalPrice,
-                CurrentStatus = GetOrderStatus(order.OrderItems),
-                ClientType = client.ClientType,
-                Phone = client.Phone,
-                DeliveryCity = order.DeliveryCity,
-                DeliveryStreet = order.DeliveryStreet,
-                DeliveryBuilding = order.DeliveryBuilding,
-                DeliveryApartment = order.DeliveryApartment,
-                Items = order.OrderItems.Select(i =>
+                OrderId = id,
+                Order = new OrderDto
                 {
-                    var config = i.IdFurnitureConfigurationNavigation;
-
-                    return new OrderItemEditor
+                    Client = new ClientDto
                     {
-                        IdOrderItem = i.IdOrderItem,
-                        IdModel = config.IdModel,
-                        IdFabricCategory = config.IdFabricCategory,
-                        IdTransformationMechanism = config.IdTransformationMechanism,
-                        Length = config.Length,
-                        Width = config.Width,
-                        Height = config.Height,
-                        Color = config.Color,
-                        StorageModuleIds = config.FurnitureConfigurationStorageModules
-                            .Select(m => m.IdStorageModule)
-                            .ToList(),
-                        Quantity = i.Quantity,
+                        ClientType = client.ClientType,
+                        Phone = client.Phone,
+                        PhysicalClient = client.ClientType == "Физическое лицо" ? new PhysicalClientDto
+                        {
+                            Surname = client.PhysicalClient!.Surname,
+                            Name = client.PhysicalClient.Name,
+                            Patronymic = client.PhysicalClient.Patronymic
+                        } : null,
+
+                        LegalClient = client.ClientType == "Юридическое лицо" ? new LegalClientDto
+                        {
+                            CompanyName = client.LegalClient!.CompanyName,
+                            Inn = client.LegalClient.Inn,
+                            Kpp = client.LegalClient.Kpp,
+                            SurnameContactPerson = client.LegalClient.SurnameContactPerson,
+                            NameContactPerson = client.LegalClient.NameContactPerson,
+                            PatronymicContactPerson = client.LegalClient.PatronymicContactPerson
+                        } : null,
+
+                    },
+                    IdEmployee = order.IdEmployee,
+                    OrderItem = order.OrderItems.Select(i => new OrderItemConfigurationDto
+                    {
                         PlannedReadyDate = i.PlannedReadyDate,
-                        CurrentStatus = i.CurrentStatus
-                    };
-                }).ToList()
+                        Quantity = i.Quantity,
+                        Configuration = new ConfigurationDto
+                        {
+                            IdModel = i.IdFurnitureConfigurationNavigation.IdModel,
+                            IdFabricCategory = i.IdFurnitureConfigurationNavigation.IdFabricCategory,
+                            IdTransformationMechanism = i.IdFurnitureConfigurationNavigation.IdTransformationMechanism,
+                            Length = i.IdFurnitureConfigurationNavigation.Length,
+                            Width = i.IdFurnitureConfigurationNavigation.Width,
+                            Height = i.IdFurnitureConfigurationNavigation.Height,
+                            Color = i.IdFurnitureConfigurationNavigation.Color,
+                            StorageModules = i.IdFurnitureConfigurationNavigation.FurnitureConfigurationStorageModules
+                                .Select(m => m.IdStorageModule)
+                                .ToList()
+                        }
+                    }).ToList(),
+                    TotalPrice = order.TotalPrice,
+                    CreationDate = order.CreationDate,
+                    DeliveryCity = order.DeliveryCity,
+                    DeliveryStreet = order.DeliveryStreet,
+                    DeliveryBuilding = order.DeliveryBuilding,
+                    DeliveryApartment = order.DeliveryApartment
+                }
+
             };
 
-            if (client.PhysicalClient is { } physical)
-            {
-                editor.Surname = physical.Surname;
-                editor.Name = physical.Name;
-                editor.Patronymic = physical.Patronymic;
-            }
-
-            if (client.LegalClient is { } legal)
-            {
-                editor.CompanyName = legal.CompanyName;
-                editor.Inn = legal.Inn;
-                editor.Kpp = legal.Kpp;
-                editor.ContactSurname = legal.SurnameContactPerson;
-                editor.ContactName = legal.NameContactPerson;
-                editor.ContactPatronymic = legal.PatronymicContactPerson;
-            }
-
-            return editor;
+            return response;
         }
 
         public async Task<int> CreateOrderAsync(OrderEditor request)

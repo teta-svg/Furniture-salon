@@ -14,10 +14,5 @@ namespace FurnitureSalon.Api.Interfaces
         Task<List<FabricCategory>> GetFabricCategoriesAsync();
         Task<List<TransformationMechanism>> GetTransformationMechanismsAsync();
         Task<List<StorageModule>> GetStorageModulesAsync();
-
-        Task<FurnitureConfiguration> GetOrCreateConfigurationAsync(
-            int idModel, int idFabricCategory, int idTransformationMechanism,
-            int length, int width, int height, string color,
-            IReadOnlyCollection<int> storageModuleIds);
     }
 }
