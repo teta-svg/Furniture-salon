@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using FurnitureSalon.Application.Shared;
 using FurnitureSalon.Core.DTO.Order;
 using System.Collections.ObjectModel;
-using System.Net.Http;
 using System.Windows;
 
 namespace FurnitureSalon.Application.ViewModels
@@ -70,6 +69,7 @@ namespace FurnitureSalon.Application.ViewModels
         }
         
         public ObservableCollection<OrderItemViewModel> OrderItems { get; } = [];
+        public OrderItemViewModel ItemEditor { get; } = new();
         public ClientInfoViewModel ClientInfo { get; } = new();
         public DeliveryInfoViewModel DeliveryInfo { get; } = new();
 
@@ -228,105 +228,94 @@ namespace FurnitureSalon.Application.ViewModels
             return itemVm;
         }
 
-        private OrderItemViewModel CreateRow(OrderItemEditor data)
-        {
-            var model = Models.FirstOrDefault(m => m.Id == data.IdModel);
-            var fabric = FabricCategories.FirstOrDefault(f => f.Id == data.IdFabricCategory);
-            var mechanism = Mechanisms.FirstOrDefault(m => m.Id == data.IdTransformationMechanism);
-            var modules = StorageModules
-                .Where(s => data.StorageModuleIds.Contains(s.Item.Id))
-                .Select(s => s.Item)
-                .ToList();
-
-            decimal unitPrice = (model?.Price ?? 0) + (fabric?.Price ?? 0) + (mechanism?.Price ?? 0)
-                                + modules.Sum(m => m.Price);
-
-            string displayName =
-                $"{model?.Name}, {fabric?.Name}, {mechanism?.Name}, {data.Color}, " +
-                $"{data.Length}×{data.Width}×{data.Height} см";
-
-            if (modules.Count > 0)
-                displayName += $" + {string.Join(", ", modules.Select(m => m.Name))}";
-
-            return new OrderItemRow(data, displayName, unitPrice * data.Quantity);
-        }
-
-
-
         [RelayCommand]
         private void AddItem()
         {
+            var editor = ItemEditor;
 
-            if (SelectedModel is null || SelectedFabric is null || SelectedMechanism is null)
+            if (editor.SelectedModel is null ||
+                editor.SelectedFabric is null ||
+                editor.SelectedMechanism is null)
             {
                 MessageBox.Show("Выберите модель, категорию ткани и механизм трансформации.");
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(Color))
+            if (string.IsNullOrWhiteSpace(editor.Color))
             {
                 MessageBox.Show("Укажите цвет.");
                 return;
             }
 
-            if (!TryParsePositive(LengthText, out int length)
-                || !TryParsePositive(WidthText, out int width)
-                || !TryParsePositive(HeightText, out int height))
+            if (!TryParsePositive(editor.LengthText, out int length) ||
+                !TryParsePositive(editor.WidthText, out int width) ||
+                !TryParsePositive(editor.HeightText, out int height))
             {
                 MessageBox.Show("Размеры должны быть целыми положительными числами.");
                 return;
             }
 
-            if (!TryParsePositive(QuantityText, out int quantity))
+            if (!TryParsePositive(editor.QuantityText, out int quantity))
             {
                 MessageBox.Show("Количество должно быть целым числом больше нуля.");
                 return;
             }
 
-            if (PlannedDate is null)
-            {
-                MessageBox.Show("Выберите плановую дату готовности.");
-                return;
-            }
-
-            var plannedDate = DateOnly.FromDateTime(PlannedDate.Value);
-
-            if (_editingRow is null && plannedDate < DateOnly.FromDateTime(DateTime.Today))
+            if (editor.PlannedReadyDate < DateOnly.FromDateTime(DateTime.Today))
             {
                 MessageBox.Show("Плановая дата готовности не может быть в прошлом.");
                 return;
             }
 
-            var data = new OrderItemEditor
+            var item = new OrderItemViewModel
             {
-                IdOrderItem = _editingRow?.Data.IdOrderItem ?? 0,
-                IdModel = SelectedModel.Id,
-                IdFabricCategory = SelectedFabric.Id,
-                IdTransformationMechanism = SelectedMechanism.Id,
-                Length = length,
-                Width = width,
-                Height = height,
-                Color = Color.Trim(),
-                StorageModuleIds = StorageModules.Where(s => s.IsSelected).Select(s => s.Item.Id).ToList(),
-                Quantity = quantity,
-                PlannedReadyDate = plannedDate,
-                CurrentStatus = _editingRow?.Data.CurrentStatus ?? string.Empty
+                Models = editor.Models,
+                FabricCategories = editor.FabricCategories,
+                Mechanisms = editor.Mechanisms,
+
+                SelectedModel = editor.SelectedModel,
+                SelectedFabric = editor.SelectedFabric,
+                SelectedMechanism = editor.SelectedMechanism,
+
+                DisplayName = editor.SelectedModel.Name,
+                Color = editor.Color.Trim(),
+
+                LengthText = length.ToString(),
+                WidthText = width.ToString(),
+                HeightText = height.ToString(),
+                QuantityText = quantity.ToString(),
+
+                PlannedReadyDate = editor.PlannedReadyDate,
+                CurrentStatus = _editingRow?.CurrentStatus ?? "Принят"
             };
 
-            var row = CreateRow(data);
+            foreach (var module in editor.StorageModules)
+            {
+                item.StorageModules.Add(
+                    new StorageModuleOption(module.Item)
+                    {
+                        IsSelected = module.IsSelected
+                    });
+            }
 
             if (_editingRow is null)
             {
-                Items.Add(row);
+                OrderItems.Add(item);
             }
             else
             {
-                Items[Items.IndexOf(_editingRow)] = row;
-                EndItemEdit();
+                int index = OrderItems.IndexOf(_editingRow);
+
+                if (index >= 0)
+                    OrderItems[index] = item;
+
+                _editingRow = null;
+                IsEditingItem = false;
             }
 
-            SelectedItemRow = row;
+            SelectedItem = item;
         }
+
 
         private bool HasSelectedItem() => SelectedItemRow is not null;
 
@@ -361,73 +350,6 @@ namespace FurnitureSalon.Application.ViewModels
             IsEditingItem = false;
         }
 
-        private static bool TryParsePositive(string? text, out int value)
-        {
-            return int.TryParse(text, out value) && value > 0;
-        }
-
-        private string? ValidateOrder()
-        {
-            if (string.IsNullOrWhiteSpace(Phone))
-                return "Укажите телефон клиента.";
-
-            if (IsPhysicalClient)
-            {
-                if (string.IsNullOrWhiteSpace(Surname) || string.IsNullOrWhiteSpace(Name))
-                    return "Укажите фамилию и имя клиента.";
-            }
-            else
-            {
-                if (string.IsNullOrWhiteSpace(CompanyName))
-                    return "Укажите название компании.";
-
-                if (Inn.Trim().Length != 10 || !Inn.Trim().All(char.IsAsciiDigit))
-                    return "ИНН должен состоять из 10 цифр.";
-
-                if (!string.IsNullOrWhiteSpace(Kpp)
-                    && (Kpp.Trim().Length != 9 || !Kpp.Trim().All(char.IsAsciiDigit)))
-                    return "КПП должен состоять из 9 цифр.";
-
-                if (string.IsNullOrWhiteSpace(ContactSurname) || string.IsNullOrWhiteSpace(ContactName))
-                    return "Укажите фамилию и имя контактного лица.";
-            }
-
-            if (string.IsNullOrWhiteSpace(DeliveryCity)
-                || string.IsNullOrWhiteSpace(DeliveryStreet)
-                || string.IsNullOrWhiteSpace(DeliveryBuilding))
-                return "Заполните город, улицу и дом в адресе доставки.";
-
-            if (Items.Count == 0)
-                return "Добавьте в заказ хотя бы одну позицию.";
-
-            return null;
-        }
-
-        private OrderEditor BuildRequest()
-        {
-            return new OrderEditor
-            {
-                IdOrder = (int)_orderId!,
-                IdEmployee = _currentUser.User?.IdEmployee ?? 0,
-                ClientType = SelectedClientType,
-                Phone = Phone.Trim(),
-                Surname = Surname,
-                Name = Name,
-                Patronymic = Patronymic,
-                CompanyName = CompanyName,
-                Inn = Inn,
-                Kpp = Kpp,
-                ContactSurname = ContactSurname,
-                ContactName = ContactName,
-                ContactPatronymic = ContactPatronymic,
-                DeliveryCity = DeliveryCity,
-                DeliveryStreet = DeliveryStreet,
-                DeliveryBuilding = DeliveryBuilding,
-                DeliveryApartment = DeliveryApartment,
-                Items = Items.Select(i => i.Data).ToList()
-            };
-        }
-
         [RelayCommand]
         private async Task SaveAsync()
         {
@@ -450,7 +372,7 @@ namespace FurnitureSalon.Application.ViewModels
             try
             {
                 if (Mode == OrderEditorMode.Create)
-                    await _apiClient.PostAsync<OrderEditor, CreateOrderResponse>("api/orders", request);
+                    await _apiClient.PutAsync("api/orders", request);
                 else
                     await _apiClient.PutAsync($"api/orders/{_orderId}", request);
 
@@ -466,6 +388,116 @@ namespace FurnitureSalon.Application.ViewModels
         private void Cancel()
         {
             CloseRequested?.Invoke(false);
+        }
+
+        private CreateOrderRequest BuildRequest()
+        {
+            var order = new OrderDto
+            {
+                Client = new ClientDto
+                {
+                    ClientType = ClientInfo.SelectedClientType,
+                    Phone = ClientInfo.Phone.Trim(),
+
+                    PhysicalClient = ClientInfo.SelectedClientType == "Физическое лицо"
+                        ? new PhysicalClientDto
+                        {
+                            Surname = ClientInfo.Surname.Trim(),
+                            Name = ClientInfo.Name.Trim(),
+                            Patronymic = ClientInfo.Patronymic
+                        }
+                        : null,
+
+                    LegalClient = ClientInfo.SelectedClientType == "Юридическое лицо"
+                        ? new LegalClientDto
+                        {
+                            CompanyName = ClientInfo.CompanyName.Trim(),
+                            Inn = ClientInfo.Inn.Trim(),
+                            Kpp = ClientInfo.Kpp,
+                            SurnameContactPerson = ClientInfo.ContactSurname.Trim(),
+                            NameContactPerson = ClientInfo.ContactName.Trim(),
+                            PatronymicContactPerson = ClientInfo.ContactPatronymic
+                        }
+                        : null
+                },
+
+                IdEmployee = _currentUser.User!.IdEmployee,
+
+                OrderItem = OrderItems.Select(item => new OrderItemConfigurationDto
+                {
+                    Configuration = new ConfigurationDto
+                    {
+                        IdModel = item.SelectedModel!.Id,
+                        IdFabricCategory = item.SelectedFabric!.Id,
+                        IdTransformationMechanism = item.SelectedMechanism!.Id,
+                        StorageModules = item.StorageModules
+                            .Where(module => module.IsSelected)
+                            .Select(module => module.Item.Id)
+                            .ToList(),
+
+                        Length = int.Parse(item.LengthText),
+                        Width = int.Parse(item.WidthText),
+                        Height = int.Parse(item.HeightText),
+                        Color = item.Color.Trim()
+                    },
+
+                    PlannedReadyDate = item.PlannedReadyDate?.ToDateTime(TimeOnly.MinValue),
+                    Quantity = item.Quantity,
+                    CurrentStatus = item.CurrentStatus
+                }).ToList(),
+
+                DeliveryCity = DeliveryInfo.DeliveryCity.Trim(),
+                DeliveryStreet = DeliveryInfo.DeliveryStreet.Trim(),
+                DeliveryBuilding = DeliveryInfo.DeliveryBuilding.Trim(),
+                DeliveryApartment = DeliveryInfo.DeliveryApartment
+            };
+
+            return new CreateOrderRequest
+            {
+                Order = order
+            };
+        }
+        private bool TryParsePositive(string? value, out int result)
+        {
+            return int.TryParse(value, out result) && result > 0;
+        }
+        private string? ValidateOrder()
+        {
+            if (string.IsNullOrWhiteSpace(ClientInfo.Phone))
+                return "Укажите телефон клиента.";
+
+            if (ClientInfo.IsPhysicalClient)
+            {
+                if (string.IsNullOrWhiteSpace(ClientInfo.Surname) || string.IsNullOrWhiteSpace(ClientInfo.Name))
+                    return "Укажите фамилию и имя клиента.";
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(ClientInfo.CompanyName))
+                    return "Укажите название компании.";
+
+                if (ClientInfo.Inn.Trim().Length != 10 || !ClientInfo.Inn.Trim().All(char.IsAsciiDigit))
+                    return "ИНН должен состоять из 10 цифр.";
+
+                if (!string.IsNullOrWhiteSpace(ClientInfo.Kpp) && (ClientInfo.Kpp.Trim().Length != 9 ||
+                    !ClientInfo.Kpp.Trim().All(char.IsAsciiDigit)))
+                    return "КПП должен состоять из 9 цифр.";
+
+                if (string.IsNullOrWhiteSpace(ClientInfo.ContactSurname) || string.IsNullOrWhiteSpace(ClientInfo.ContactName))
+                    return "Укажите фамилию и имя контактного лица.";
+            }
+
+            if (string.IsNullOrWhiteSpace(DeliveryInfo.DeliveryCity) ||
+                string.IsNullOrWhiteSpace(DeliveryInfo.DeliveryStreet) ||
+                string.IsNullOrWhiteSpace(DeliveryInfo.DeliveryBuilding))
+            {
+                return "Заполните город, улицу и дом в адресе доставки.";
+            }
+
+            if (OrderItems.Count == 0)
+                return "Добавьте в заказ хотя бы одну позицию.";
+
+            return null;
         }
     }
 }
