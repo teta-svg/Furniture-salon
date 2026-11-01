@@ -122,256 +122,324 @@ namespace FurnitureSalon.Api.Services
 
             return orderListResponse;
         }
-        public async Task<OrderDictionariesResponse> GetLookupsAsync()
-        {
-            return new OrderDictionariesResponse
-            {
-                Models = (await _orderRepository.GetModelsAsync())
-                    .Select(m => new LookupItem { Id = m.IdModel, Name = m.ModelName, Price = m.BasePrice })
-                    .ToList(),
-                FabricCategories = (await _orderRepository.GetFabricCategoriesAsync())
-                    .Select(f => new LookupItem { Id = f.IdFabricCategory, Name = f.Name, Price = f.PriceMarkup })
-                    .ToList(),
-                TransformationMechanisms = (await _orderRepository.GetTransformationMechanismsAsync())
-                    .Select(m => new LookupItem { Id = m.IdTransformationMechanism, Name = m.Name, Price = m.PriceMarkup })
-                    .ToList(),
-                StorageModules = (await _orderRepository.GetStorageModulesAsync())
-                    .Select(m => new LookupItem { Id = m.IdStorageModule, Name = m.ModuleName, Price = m.BasePrice })
-                    .ToList()
-            };
-        }
 
         public async Task<OrderResponse?> GetOrderByIdAsync(int id)
         {
-            Order? order = await _orderRepository.GetOrderByIdAsync(id);
+            var order = await _orderRepository.GetOrderByIdAsync(id);
 
             if (order is null)
                 return null;
 
-            var client = order.IdClientNavigation;
-
-            var response = new OrderResponse
+            return new OrderResponse
             {
-                OrderId = id,
-                Order = new OrderDto
-                {
-                    Client = new ClientDto
-                    {
-                        ClientType = client.ClientType,
-                        Phone = client.Phone,
-                        PhysicalClient = client.ClientType == "Физическое лицо" ? new PhysicalClientDto
-                        {
-                            Surname = client.PhysicalClient!.Surname,
-                            Name = client.PhysicalClient.Name,
-                            Patronymic = client.PhysicalClient.Patronymic
-                        } : null,
-
-                        LegalClient = client.ClientType == "Юридическое лицо" ? new LegalClientDto
-                        {
-                            CompanyName = client.LegalClient!.CompanyName,
-                            Inn = client.LegalClient.Inn,
-                            Kpp = client.LegalClient.Kpp,
-                            SurnameContactPerson = client.LegalClient.SurnameContactPerson,
-                            NameContactPerson = client.LegalClient.NameContactPerson,
-                            PatronymicContactPerson = client.LegalClient.PatronymicContactPerson
-                        } : null,
-
-                    },
-                    IdEmployee = order.IdEmployee,
-                    OrderItem = order.OrderItems.Select(i => new OrderItemConfigurationDto
-                    {
-                        PlannedReadyDate = i.PlannedReadyDate,
-                        Quantity = i.Quantity,
-                        Configuration = new ConfigurationDto
-                        {
-                            IdModel = i.IdFurnitureConfigurationNavigation.IdModel,
-                            IdFabricCategory = i.IdFurnitureConfigurationNavigation.IdFabricCategory,
-                            IdTransformationMechanism = i.IdFurnitureConfigurationNavigation.IdTransformationMechanism,
-                            Length = i.IdFurnitureConfigurationNavigation.Length,
-                            Width = i.IdFurnitureConfigurationNavigation.Width,
-                            Height = i.IdFurnitureConfigurationNavigation.Height,
-                            Color = i.IdFurnitureConfigurationNavigation.Color,
-                            StorageModules = i.IdFurnitureConfigurationNavigation.FurnitureConfigurationStorageModules
-                                .Select(m => m.IdStorageModule)
-                                .ToList()
-                        }
-                    }).ToList(),
-                    TotalPrice = order.TotalPrice,
-                    CreationDate = order.CreationDate,
-                    DeliveryCity = order.DeliveryCity,
-                    DeliveryStreet = order.DeliveryStreet,
-                    DeliveryBuilding = order.DeliveryBuilding,
-                    DeliveryApartment = order.DeliveryApartment
-                }
-
+                OrderId = order.IdOrder,
+                Order = MapOrderToDto(order)
             };
-
-            return response;
         }
 
-        public async Task<int> CreateOrderAsync(OrderEditor request)
+        private static OrderDto MapOrderToDto(Order order)
         {
-            Validate(request);
-
-            var client = new Client
+            return new OrderDto
             {
-                ClientType = request.ClientType,
-                Phone = request.Phone.Trim()
+                Client = MapClientToDto(order.IdClientNavigation),
+                IdEmployee = order.IdEmployee,
+                OrderItem = order.OrderItems.Select(MapOrderItemToDto).ToList(),
+                TotalPrice = order.TotalPrice,
+                CreationDate = order.CreationDate,
+                DeliveryCity = order.DeliveryCity,
+                DeliveryStreet = order.DeliveryStreet,
+                DeliveryBuilding = order.DeliveryBuilding,
+                DeliveryApartment = order.DeliveryApartment
             };
+        }
 
-            ApplyClientDetails(client, request);
+        private static ClientDto MapClientToDto(Client client)
+        {
+            return new ClientDto
+            {
+                ClientType = client.ClientType,
+                Phone = client.Phone,
+
+                PhysicalClient = client.ClientType == PhysicalClientType
+                    ? new PhysicalClientDto
+                    {
+                        Surname = client.PhysicalClient!.Surname,
+                        Name = client.PhysicalClient.Name,
+                        Patronymic = client.PhysicalClient.Patronymic
+                    }
+                    : null,
+
+                LegalClient = client.ClientType == LegalClientType
+                    ? new LegalClientDto
+                    {
+                        CompanyName = client.LegalClient!.CompanyName,
+                        Inn = client.LegalClient.Inn,
+                        Kpp = client.LegalClient.Kpp,
+                        SurnameContactPerson = client.LegalClient.SurnameContactPerson,
+                        NameContactPerson = client.LegalClient.NameContactPerson,
+                        PatronymicContactPerson = client.LegalClient.PatronymicContactPerson
+                    }
+                    : null
+            };
+        }
+
+        private static OrderItemConfigurationDto MapOrderItemToDto(OrderItem item)
+        {
+            var config = item.IdFurnitureConfigurationNavigation;
+
+            return new OrderItemConfigurationDto
+            {
+                IdOrderItem = item.IdOrderItem,
+                PlannedReadyDate = item.PlannedReadyDate,
+                Quantity = item.Quantity,
+                CurrentStatus = item.CurrentStatus,
+
+                Configuration = new ConfigurationDto
+                {
+                    IdModel = config.IdModel,
+                    IdFabricCategory = config.IdFabricCategory,
+                    IdTransformationMechanism = config.IdTransformationMechanism,
+                    Length = config.Length,
+                    Width = config.Width,
+                    Height = config.Height,
+                    Color = config.Color,
+
+                    StorageModules = config.FurnitureConfigurationStorageModules
+                        .Select(m => m.IdStorageModule)
+                        .ToList()
+                }
+            };
+        }
+
+        public async Task<OrderDictionariesResponse> GetDictAsync()
+        {
+            return new OrderDictionariesResponse
+            {
+                Models = (await _orderRepository.GetModelsAsync())
+                    .Select(m => new DictionaryItem { Id = m.IdModel, Name = m.ModelName, Price = m.BasePrice })
+                    .ToList(),
+                FabricCategories = (await _orderRepository.GetFabricCategoriesAsync())
+                    .Select(f => new DictionaryItem { Id = f.IdFabricCategory, Name = f.Name, Price = f.PriceMarkup })
+                    .ToList(),
+                TransformationMechanisms = (await _orderRepository.GetTransformationMechanismsAsync())
+                    .Select(m => new DictionaryItem { Id = m.IdTransformationMechanism, Name = m.Name, Price = m.PriceMarkup })
+                    .ToList(),
+                StorageModules = (await _orderRepository.GetStorageModulesAsync())
+                    .Select(m => new DictionaryItem { Id = m.IdStorageModule, Name = m.ModuleName, Price = m.BasePrice })
+                    .ToList()
+            };
+        }
+
+        public async Task CreateOrderAsync(CreateOrderRequest request)
+        {
+            Validate(request.Order);
+
+            var dto = request.Order;
 
             var order = new Order
             {
-                IdEmployee = request.IdEmployee,
+                IdEmployee = dto.IdEmployee,
                 CreationDate = DateOnly.FromDateTime(DateTime.Today),
-                IdClientNavigation = client
+                IdClientNavigation = CreateClient(dto.Client)
             };
 
-            ApplyDelivery(order, request);
+            ApplyDelivery(order, dto);
 
-            foreach (var item in request.Items)
+            foreach (var item in dto.OrderItem)
             {
                 order.OrderItems.Add(new OrderItem
                 {
-                    IdFurnitureConfigurationNavigation = await GetConfigurationAsync(item),
+                    IdFurnitureConfigurationNavigation =
+                        CreateConfiguration(item.Configuration),
+
                     PlannedReadyDate = item.PlannedReadyDate,
                     Quantity = item.Quantity,
                     CurrentStatus = NewItemStatus
                 });
             }
 
-            order.TotalPrice = await CalculateTotalAsync(request.Items);
+            order.TotalPrice = await CalculateTotalAsync(dto.OrderItem);
 
-            return await _orderRepository.CreateOrderAsync(order);
+            await _orderRepository.CreateOrderAsync(order);
         }
 
-        public async Task<bool> UpdateOrderAsync(int id, OrderEditor request)
+        public async Task<bool> UpdateOrderAsync(int id, EditOrderRequest request)
         {
-            Order? order = await _orderRepository.GetOrderByIdAsync(id);
+            var order = await _orderRepository.GetOrderByIdAsync(id);
 
             if (order is null)
                 return false;
 
-            request.ClientType = order.IdClientNavigation.ClientType;
+            var dto = request.Order;
 
-            Validate(request);
+            dto.Client.ClientType = order.IdClientNavigation.ClientType;
 
-            order.IdClientNavigation.Phone = request.Phone.Trim();
-            ApplyClientDetails(order.IdClientNavigation, request);
-            ApplyDelivery(order, request);
+            Validate(dto);
 
-            var keptIds = request.Items
+            order.IdClientNavigation.Phone = dto.Client.Phone.Trim();
+            ApplyClientDetails(order.IdClientNavigation, dto.Client);
+            ApplyDelivery(order, dto);
+
+            var incomingIds = dto.OrderItem
                 .Where(i => i.IdOrderItem != 0)
                 .Select(i => i.IdOrderItem)
                 .ToHashSet();
 
             var removedItems = order.OrderItems
-                .Where(i => !keptIds.Contains(i.IdOrderItem))
+                .Where(i => !incomingIds.Contains(i.IdOrderItem))
                 .ToList();
 
-            foreach (var item in request.Items)
+            foreach (var itemDto in dto.OrderItem)
             {
-                var configuration = await GetConfigurationAsync(item);
-
-                if (item.IdOrderItem == 0)
+                if (itemDto.IdOrderItem == 0)
                 {
                     order.OrderItems.Add(new OrderItem
                     {
-                        IdFurnitureConfigurationNavigation = configuration,
-                        PlannedReadyDate = item.PlannedReadyDate,
-                        Quantity = item.Quantity,
+                        IdFurnitureConfigurationNavigation =
+                            CreateConfiguration(itemDto.Configuration),
+
+                        PlannedReadyDate = itemDto.PlannedReadyDate,
+                        Quantity = itemDto.Quantity,
                         CurrentStatus = NewItemStatus
                     });
 
                     continue;
                 }
 
-                var existing = order.OrderItems.FirstOrDefault(i => i.IdOrderItem == item.IdOrderItem)
-                    ?? throw new ArgumentException($"Позиция {item.IdOrderItem} не принадлежит заказу {id}.");
+                var existing = order.OrderItems.FirstOrDefault(
+                    i => i.IdOrderItem == itemDto.IdOrderItem);
 
-                existing.IdFurnitureConfigurationNavigation = configuration;
-                existing.PlannedReadyDate = item.PlannedReadyDate;
-                existing.Quantity = item.Quantity;
+                if (existing is null || removedItems.Contains(existing))
+                {
+                    throw new ArgumentException(
+                        $"Позиция {itemDto.IdOrderItem} не принадлежит заказу {id}.");
+                }
+
+                existing.IdFurnitureConfigurationNavigation =
+                    CreateConfiguration(itemDto.Configuration);
+
+                existing.PlannedReadyDate = itemDto.PlannedReadyDate;
+                existing.Quantity = itemDto.Quantity;
             }
 
-            order.TotalPrice = await CalculateTotalAsync(request.Items);
+            order.TotalPrice = await CalculateTotalAsync(dto.OrderItem);
 
             await _orderRepository.UpdateOrderAsync(order, removedItems);
 
             return true;
         }
 
-        private Task<FurnitureConfiguration> GetConfigurationAsync(OrderItemEditor item)
+        private static Client CreateClient(ClientDto dto)
         {
-            return _orderRepository.GetOrCreateConfigurationAsync(
-                item.IdModel, item.IdFabricCategory, item.IdTransformationMechanism,
-                item.Length, item.Width, item.Height, item.Color.Trim(),
-                item.StorageModuleIds);
-        }
-
-        private static void ApplyClientDetails(Client client, OrderEditor request)
-        {
-            if (client.ClientType == PhysicalClientType)
+            var client = new Client
             {
-                var physical = client.PhysicalClient ??= new PhysicalClient();
+                ClientType = dto.ClientType,
+                Phone = dto.Phone.Trim()
+            };
 
-                physical.Surname = request.Surname!.Trim();
-                physical.Name = request.Name!.Trim();
-                physical.Patronymic = NullIfEmpty(request.Patronymic);
-            }
-            else
+            ApplyClientDetails(client, dto);
+
+            return client;
+        }
+
+        private static void ApplyClientDetails(Client client, ClientDto dto)
+        {
+            if (dto.ClientType == PhysicalClientType)
             {
-                var legal = client.LegalClient ??= new LegalClient();
+                client.PhysicalClient = new PhysicalClient
+                {
+                    Surname = dto.PhysicalClient!.Surname.Trim(),
+                    Name = dto.PhysicalClient.Name.Trim(),
+                    Patronymic = dto.PhysicalClient.Patronymic?.Trim()
+                };
 
-                legal.CompanyName = request.CompanyName!.Trim();
-                legal.Inn = request.Inn!.Trim();
-                legal.Kpp = NullIfEmpty(request.Kpp);
-                legal.SurnameContactPerson = request.ContactSurname!.Trim();
-                legal.NameContactPerson = request.ContactName!.Trim();
-                legal.PatronymicContactPerson = NullIfEmpty(request.ContactPatronymic);
+                client.LegalClient = null;
+            }
+            else if (dto.ClientType == LegalClientType)
+            {
+                client.LegalClient = new LegalClient
+                {
+                    CompanyName = dto.LegalClient!.CompanyName.Trim(),
+                    Inn = dto.LegalClient.Inn.Trim(),
+                    Kpp = dto.LegalClient.Kpp?.Trim(),
+                    SurnameContactPerson = dto.LegalClient.SurnameContactPerson.Trim(),
+                    NameContactPerson = dto.LegalClient.NameContactPerson.Trim(),
+                    PatronymicContactPerson = dto.LegalClient.PatronymicContactPerson?.Trim()
+                };
+
+                client.PhysicalClient = null;
             }
         }
 
-        private static void ApplyDelivery(Order order, OrderEditor request)
+        private static FurnitureConfiguration CreateConfiguration(ConfigurationDto dto)
         {
-            order.DeliveryCity = request.DeliveryCity.Trim();
-            order.DeliveryStreet = request.DeliveryStreet.Trim();
-            order.DeliveryBuilding = request.DeliveryBuilding.Trim();
-            order.DeliveryApartment = NullIfEmpty(request.DeliveryApartment);
+            var configuration = new FurnitureConfiguration
+            {
+                IdModel = dto.IdModel,
+                IdFabricCategory = dto.IdFabricCategory,
+                IdTransformationMechanism = dto.IdTransformationMechanism,
+                Length = dto.Length,
+                Width = dto.Width,
+                Height = dto.Height,
+                Color = dto.Color.Trim()
+            };
+
+            foreach (var moduleId in dto.StorageModules.Distinct())
+            {
+                configuration.FurnitureConfigurationStorageModules.Add(
+                    new FurnitureConfigurationStorageModule
+                    {
+                        IdStorageModule = moduleId
+                    });
+            }
+
+            return configuration;
         }
 
-        private static string? NullIfEmpty(string? value)
+        private static void ApplyDelivery(Order order, OrderDto dto)
         {
-            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            order.DeliveryCity = dto.DeliveryCity.Trim();
+            order.DeliveryStreet = dto.DeliveryStreet.Trim();
+            order.DeliveryBuilding = dto.DeliveryBuilding.Trim();
+            order.DeliveryApartment = dto.DeliveryApartment?.Trim();
         }
 
-        private async Task<decimal> CalculateTotalAsync(IEnumerable<OrderItemEditor> items)
+        private async Task<decimal> CalculateTotalAsync(IEnumerable<OrderItemConfigurationDto> items)
         {
-            var models = (await _orderRepository.GetModelsAsync()).ToDictionary(m => m.IdModel, m => m.BasePrice);
-            var fabrics = (await _orderRepository.GetFabricCategoriesAsync()).ToDictionary(f => f.IdFabricCategory, f => f.PriceMarkup);
-            var mechanisms = (await _orderRepository.GetTransformationMechanismsAsync()).ToDictionary(m => m.IdTransformationMechanism, m => m.PriceMarkup);
-            var modules = (await _orderRepository.GetStorageModulesAsync()).ToDictionary(m => m.IdStorageModule, m => m.BasePrice);
+            var models = (await _orderRepository.GetModelsAsync())
+                .ToDictionary(m => m.IdModel, m => m.BasePrice);
+
+            var fabrics = (await _orderRepository.GetFabricCategoriesAsync())
+                .ToDictionary(f => f.IdFabricCategory, f => f.PriceMarkup);
+
+            var mechanisms = (await _orderRepository.GetTransformationMechanismsAsync())
+                .ToDictionary(m => m.IdTransformationMechanism, m => m.PriceMarkup);
+
+            var modules = (await _orderRepository.GetStorageModulesAsync())
+                .ToDictionary(m => m.IdStorageModule, m => m.BasePrice);
 
             decimal total = 0;
 
             foreach (var item in items)
             {
-                if (!models.TryGetValue(item.IdModel, out var modelPrice))
-                    throw new ArgumentException($"Модель {item.IdModel} не найдена.");
+                var config = item.Configuration;
 
-                if (!fabrics.TryGetValue(item.IdFabricCategory, out var fabricMarkup))
-                    throw new ArgumentException($"Категория ткани {item.IdFabricCategory} не найдена.");
+                if (!models.TryGetValue(config.IdModel, out var modelPrice))
+                    throw new ArgumentException($"Модель {config.IdModel} не найдена.");
 
-                if (!mechanisms.TryGetValue(item.IdTransformationMechanism, out var mechanismMarkup))
-                    throw new ArgumentException($"Механизм трансформации {item.IdTransformationMechanism} не найден.");
+                if (!fabrics.TryGetValue(config.IdFabricCategory, out var fabricMarkup))
+                    throw new ArgumentException($"Категория ткани {config.IdFabricCategory} не найдена.");
+
+                if (!mechanisms.TryGetValue(config.IdTransformationMechanism, out var mechanismMarkup))
+                    throw new ArgumentException( $"Механизм трансформации {config.IdTransformationMechanism} не найден.");
 
                 decimal modulesPrice = 0;
 
-                foreach (var moduleId in item.StorageModuleIds.Distinct())
+                foreach (var moduleId in config.StorageModules.Distinct())
                 {
                     if (!modules.TryGetValue(moduleId, out var modulePrice))
-                        throw new ArgumentException($"Модуль хранения {moduleId} не найден.");
+                        throw new ArgumentException(
+                            $"Модуль хранения {moduleId} не найден.");
 
                     modulesPrice += modulePrice;
                 }
@@ -382,47 +450,90 @@ namespace FurnitureSalon.Api.Services
             return total;
         }
 
-        private static void Validate(OrderEditor request)
+        private static void Validate(OrderDto order)
         {
-            if (request.ClientType != PhysicalClientType && request.ClientType != LegalClientType)
-                throw new ArgumentException("Неизвестный тип клиента.");
+            var client = order.Client
+                ?? throw new ArgumentException("Не указан клиент.");
 
-            if (string.IsNullOrWhiteSpace(request.Phone))
+            if (client.ClientType != PhysicalClientType &&
+                client.ClientType != LegalClientType)
+            {
+                throw new ArgumentException("Неизвестный тип клиента.");
+            }
+
+            if (string.IsNullOrWhiteSpace(client.Phone))
                 throw new ArgumentException("Не указан телефон клиента.");
 
-            if (request.ClientType == PhysicalClientType)
+            if (client.ClientType == PhysicalClientType)
             {
-                if (string.IsNullOrWhiteSpace(request.Surname) || string.IsNullOrWhiteSpace(request.Name))
+                var physical = client.PhysicalClient
+                    ?? throw new ArgumentException("Не указаны данные физического лица.");
+
+                if (string.IsNullOrWhiteSpace(physical.Surname) ||
+                    string.IsNullOrWhiteSpace(physical.Name))
+                {
                     throw new ArgumentException("Не указаны фамилия и имя клиента.");
+                }
             }
-            else if (string.IsNullOrWhiteSpace(request.CompanyName)
-                  || string.IsNullOrWhiteSpace(request.Inn)
-                  || string.IsNullOrWhiteSpace(request.ContactSurname)
-                  || string.IsNullOrWhiteSpace(request.ContactName))
+            else
             {
-                throw new ArgumentException("Не заполнены данные юридического лица.");
+                var legal = client.LegalClient
+                    ?? throw new ArgumentException("Не указаны данные юридического лица.");
+
+                if (string.IsNullOrWhiteSpace(legal.CompanyName) ||
+                    string.IsNullOrWhiteSpace(legal.Inn) ||
+                    string.IsNullOrWhiteSpace(legal.SurnameContactPerson) ||
+                    string.IsNullOrWhiteSpace(legal.NameContactPerson))
+                {
+                    throw new ArgumentException("Не заполнены данные юридического лица.");
+                }
+
+                if (legal.Inn.Trim().Length != 10 ||
+                    !legal.Inn.Trim().All(char.IsAsciiDigit))
+                {
+                    throw new ArgumentException("ИНН должен состоять из 10 цифр.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(legal.Kpp) &&
+                    (legal.Kpp.Trim().Length != 9 ||
+                     !legal.Kpp.Trim().All(char.IsAsciiDigit)))
+                {
+                    throw new ArgumentException("КПП должен состоять из 9 цифр.");
+                }
             }
 
-            if (string.IsNullOrWhiteSpace(request.DeliveryCity)
-             || string.IsNullOrWhiteSpace(request.DeliveryStreet)
-             || string.IsNullOrWhiteSpace(request.DeliveryBuilding))
+            if (string.IsNullOrWhiteSpace(order.DeliveryCity) ||
+                string.IsNullOrWhiteSpace(order.DeliveryStreet) ||
+                string.IsNullOrWhiteSpace(order.DeliveryBuilding))
             {
                 throw new ArgumentException("Не заполнен адрес доставки.");
             }
 
-            if (request.Items.Count == 0)
+            if (order.OrderItem is null || order.OrderItem.Count == 0)
                 throw new ArgumentException("В заказе нет позиций.");
 
-            foreach (var item in request.Items)
+            foreach (var item in order.OrderItem)
             {
+                if (item is null || item.Configuration is null)
+                    throw new ArgumentException("Некорректная позиция заказа.");
+
+                var config = item.Configuration;
+
                 if (item.Quantity <= 0)
                     throw new ArgumentException("Количество должно быть больше нуля.");
 
-                if (item.Length <= 0 || item.Width <= 0 || item.Height <= 0)
+                if (config.Length <= 0 || config.Width <= 0 || config.Height <= 0)
                     throw new ArgumentException("Размеры должны быть больше нуля.");
 
-                if (string.IsNullOrWhiteSpace(item.Color))
+                if (string.IsNullOrWhiteSpace(config.Color))
                     throw new ArgumentException("Не указан цвет.");
+
+                if (config.IdModel <= 0 ||
+                    config.IdFabricCategory <= 0 ||
+                    config.IdTransformationMechanism <= 0)
+                {
+                    throw new ArgumentException("Не выбраны все параметры конфигурации.");
+                }
             }
         }
     }

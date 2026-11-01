@@ -89,12 +89,10 @@ namespace FurnitureSalon.Api.Repositories
                 .FirstOrDefaultAsync(o => o.IdOrder == id);
         }
 
-        public async Task<int> CreateOrderAsync(Order order)
+        public async Task CreateOrderAsync(Order order)
         {
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
-
-            return order.IdOrder;
         }
 
         public async Task UpdateOrderAsync(Order order, IReadOnlyCollection<OrderItem> removedItems)
@@ -102,25 +100,36 @@ namespace FurnitureSalon.Api.Repositories
             _context.OrderItems.RemoveRange(removedItems);
             await _context.SaveChangesAsync();
         }
-
         public async Task<List<Model>> GetModelsAsync()
         {
-            return await _context.Models.AsNoTracking().OrderBy(m => m.ModelName).ToListAsync();
+            return await _context.Models
+                .AsNoTracking()
+                .OrderBy(m => m.ModelName)
+                .ToListAsync();
         }
 
         public async Task<List<FabricCategory>> GetFabricCategoriesAsync()
         {
-            return await _context.FabricCategories.AsNoTracking().OrderBy(f => f.Name).ToListAsync();
+            return await _context.FabricCategories
+                .AsNoTracking()
+                .OrderBy(f => f.Name)
+                .ToListAsync();
         }
 
         public async Task<List<TransformationMechanism>> GetTransformationMechanismsAsync()
         {
-            return await _context.TransformationMechanisms.AsNoTracking().OrderBy(m => m.Name).ToListAsync();
+            return await _context.TransformationMechanisms
+                .AsNoTracking()
+                .OrderBy(m => m.Name)
+                .ToListAsync();
         }
 
         public async Task<List<StorageModule>> GetStorageModulesAsync()
         {
-            return await _context.StorageModules.AsNoTracking().OrderBy(m => m.ModuleName).ToListAsync();
+            return await _context.StorageModules
+                .AsNoTracking()
+                .OrderBy(m => m.ModuleName)
+                .ToListAsync();
         }
     }
 }

@@ -6,9 +6,9 @@ namespace FurnitureSalon.Api.Interfaces
     {
         Task<List<OrderListResponse>> GetAllOrdersAsync();
         Task<List<OrderListResponse>> SearchOrdersAsync(OrderSearchRequest searchRequest);
-        Task<OrderDictionariesResponse> GetDictAsync();
         Task<OrderResponse?> GetOrderByIdAsync(int id);
-        //Task<int> CreateOrderAsync(OrderEditor request);
-        //Task<bool> UpdateOrderAsync(int id, OrderEditor request);
+        Task<OrderDictionariesResponse> GetDictAsync();
+        Task CreateOrderAsync(CreateOrderRequest request);
+        Task<bool> UpdateOrderAsync(int id, EditOrderRequest request);
     }
 }

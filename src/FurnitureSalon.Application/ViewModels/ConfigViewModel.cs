@@ -317,37 +317,38 @@ namespace FurnitureSalon.Application.ViewModels
         }
 
 
-        private bool HasSelectedItem() => SelectedItemRow is not null;
-
+        private bool HasSelectedItem() => SelectedItem is not null;
 
         [RelayCommand(CanExecute = nameof(HasSelectedItem))]
         private void EditItem()
         {
-            var row = SelectedItemRow!;
-            var data = row.Data;
+            if (SelectedItem is null)
+                return;
 
-            _editingRow = row;
+            _editingRow = SelectedItem;
             IsEditingItem = true;
 
-            SelectedModel = Models.FirstOrDefault(m => m.Id == data.IdModel);
-            SelectedFabric = FabricCategories.FirstOrDefault(f => f.Id == data.IdFabricCategory);
-            SelectedMechanism = Mechanisms.FirstOrDefault(m => m.Id == data.IdTransformationMechanism);
+            var editor = ItemEditor;
+            var item = SelectedItem;
 
-            Color = data.Color;
-            LengthText = data.Length.ToString();
-            WidthText = data.Width.ToString();
-            HeightText = data.Height.ToString();
-            QuantityText = data.Quantity.ToString();
-            PlannedDate = data.PlannedReadyDate.ToDateTime(TimeOnly.MinValue);
+            editor.SelectedModel = item.SelectedModel;
+            editor.SelectedFabric = item.SelectedFabric;
+            editor.SelectedMechanism = item.SelectedMechanism;
 
-            foreach (var module in StorageModules)
-                module.IsSelected = data.StorageModuleIds.Contains(module.Item.Id);
-        }
+            editor.Color = item.Color;
+            editor.LengthText = item.LengthText;
+            editor.WidthText = item.WidthText;
+            editor.HeightText = item.HeightText;
+            editor.QuantityText = item.QuantityText;
+            editor.PlannedReadyDate = item.PlannedReadyDate;
 
-        private void EndItemEdit()
-        {
-            _editingRow = null;
-            IsEditingItem = false;
+            foreach (var module in editor.StorageModules)
+            {
+                var selectedModule = item.StorageModules
+                    .FirstOrDefault(m => m.Item.Id == module.Item.Id);
+
+                module.IsSelected = selectedModule?.IsSelected ?? false;
+            }
         }
 
         [RelayCommand]
@@ -441,7 +442,7 @@ namespace FurnitureSalon.Application.ViewModels
                         Color = item.Color.Trim()
                     },
 
-                    PlannedReadyDate = item.PlannedReadyDate?.ToDateTime(TimeOnly.MinValue),
+                    PlannedReadyDate = item.PlannedReadyDate,
                     Quantity = item.Quantity,
                     CurrentStatus = item.CurrentStatus
                 }).ToList(),

@@ -31,10 +31,10 @@ namespace FurnitureSalon.Api.Controllers
             return Ok(response);
         }
 
-        [HttpGet("orders/lookups")]
-        public async Task<IActionResult> GetLookupsAsync()
+        [HttpGet("orders/dict")]
+        public async Task<IActionResult> GetDictAsync()
         {
-            var response = await _orderService.GetLookupsAsync();
+            var response = await _orderService.GetDictAsync();
 
             return Ok(response);
         }
@@ -51,24 +51,22 @@ namespace FurnitureSalon.Api.Controllers
         }
 
         [HttpPost("orders")]
-        public async Task<IActionResult> CreateOrderAsync([FromBody] OrderEditor request)
+        public async Task<IActionResult> CreateOrderAsync([FromBody] CreateOrderRequest request)
         {
             try
             {
-                var id = await _orderService.CreateOrderAsync(request);
-
-                return CreatedAtRoute("GetOrder", new { id }, new CreateOrderResponse { IdOrder = id });
+                await _orderService.CreateOrderAsync(request);
             }
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);
             }
+
+            return NoContent();
         }
 
         [HttpPut("orders/{id:int}")]
-        public async Task<IActionResult> UpdateOrderAsync(
-            int id,
-            [FromBody] OrderEditor request)
+        public async Task<IActionResult> UpdateOrderAsync(int id, [FromBody] EditOrderRequest request)
         {
             try
             {
