@@ -12,6 +12,8 @@ namespace FurnitureSalon.Application.Views
             DataContext = viewModel;
 
             viewModel.CloseRequested += result => DialogResult = result;
+
+            Loaded += async (_, _) => await viewModel.LoadCommand.ExecuteAsync(null);
         }
     }
 }

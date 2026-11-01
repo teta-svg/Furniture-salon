@@ -42,18 +42,16 @@ namespace FurnitureSalon.Application.ViewModels
         private string _color = "Бежевый";
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(TotalPrice))]
         private string _lengthText = "200";
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(TotalPrice))]
         private string _widthText = "90";
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(TotalPrice))]
         private string _heightText = "80";
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(Quantity))]
         [NotifyPropertyChangedFor(nameof(TotalPrice))]
         private string _quantityText = "1";
 
