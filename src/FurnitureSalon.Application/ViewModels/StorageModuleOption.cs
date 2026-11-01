@@ -5,14 +5,11 @@ namespace FurnitureSalon.Application.ViewModels
 {
     public partial class StorageModuleOption : ObservableObject
     {
-        public StorageModuleOption(LookupItem item)
+        public StorageModuleOption(DictionaryItem item)
         {
             Item = item;
         }
-
-        public LookupItem Item { get; }
-
-        public string Label => $"{Item.Name} (+{Item.Price:N0} ₽)";
+        public DictionaryItem Item { get; } = new DictionaryItem();
 
         [ObservableProperty]
         private bool _isSelected;

@@ -21,7 +21,7 @@
     {
         public ClientDto Client { get; set; } = new();
         public int IdEmployee { get; set; }
-        public OrderItemConfigurationDto OrderItem { get; set; } = new();
+        public List<OrderItemConfigurationDto> OrderItem { get; set; } = new();
         public DateOnly CreationDate { get; set; }
         public decimal TotalPrice { get; set; }
         public string DeliveryCity { get; set; } = null!;

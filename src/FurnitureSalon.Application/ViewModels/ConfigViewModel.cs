@@ -10,16 +10,13 @@ namespace FurnitureSalon.Application.ViewModels
 {
     public partial class ConfigViewModel : ObservableObject
     {
-        private const string PhysicalClientType = "Физическое лицо";
-        private const string LegalClientType = "Юридическое лицо";
-
         private readonly ApiClient _apiClient;
         private readonly ICurrentUser _currentUser;
         private readonly IConfigHelper _configHelper;
 
         private int? _orderId;
         private string _orderStatus = string.Empty;
-        private OrderItemRow? _editingRow;
+        private OrderItemViewModel? _editingRow;
 
         public ConfigViewModel(ApiClient apiClient, ICurrentUser currentUser, IConfigHelper configHelper)
         {
@@ -30,10 +27,11 @@ namespace FurnitureSalon.Application.ViewModels
             _orderId = _configHelper.IdOrder;
             Mode = _configHelper.EditorMode;
 
-            Items.CollectionChanged += (_, _) => RecalculateTotal();
-
             UpdateHeader();
         }
+
+        private const string PhysicalClientType = "Физическое лицо";
+        private const string LegalClientType = "Юридическое лицо";
 
         public event Action<bool>? CloseRequested;
 
@@ -77,6 +75,8 @@ namespace FurnitureSalon.Application.ViewModels
                     break;
             }
         }
+
+        public ObservableCollection<OrderItemViewModel> OrderItems { get; } = [];
 
         [ObservableProperty]
         private List<string> clientTypes = [PhysicalClientType, LegalClientType];
@@ -140,65 +140,7 @@ namespace FurnitureSalon.Application.ViewModels
 
         #endregion
 
-        #region поля для конфигурации заказа
-
-        [ObservableProperty]
-        private List<LookupItem> _models = [];
-
-        [ObservableProperty]
-        private List<LookupItem> _fabricCategories = [];
-
-        [ObservableProperty]
-        private List<LookupItem> _mechanisms = [];
-
-        public ObservableCollection<StorageModuleOption> StorageModules { get; } = [];
-
-        [ObservableProperty]
-        private LookupItem? _selectedModel;
-
-        [ObservableProperty]
-        private LookupItem? _selectedFabric;
-
-        [ObservableProperty]
-        private LookupItem? _selectedMechanism;
-
-        [ObservableProperty]
-        private string _color = "Бежевый";
-
-        [ObservableProperty]
-        private string _lengthText = "200";
-
-        [ObservableProperty]
-        private string _widthText = "90";
-
-        [ObservableProperty]
-        private string _heightText = "80";
-
-        [ObservableProperty]
-        private string _quantityText = "1";
-
-        #endregion
-
-        [ObservableProperty]
-        private DateTime? _plannedDate = DateTime.Today.AddDays(30);
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(AddItemButtonText))]
-        private bool _isEditingItem;
-
-        public string AddItemButtonText =>
-            IsEditingItem ? "Сохранить изменения позиции" : "Добавить конфигурацию в заказ";
-
-        partial void OnSelectedModelChanged(LookupItem? value) 
-            => UpdateConfigurationPrice();
-        partial void OnSelectedFabricChanged(LookupItem? value)
-            => UpdateConfigurationPrice();
-        partial void OnSelectedMechanismChanged(LookupItem? value) 
-            => UpdateConfigurationPrice();
-        partial void OnQuantityTextChanged(string value)
-            => UpdateConfigurationPrice();
-
-
+        #region поля для цены
 
         [ObservableProperty]
         private string _modelPriceText = "—";
@@ -218,54 +160,31 @@ namespace FurnitureSalon.Application.ViewModels
         [ObservableProperty]
         private string _configurationQuantityTotalText = "—";
 
-        private static string Money(decimal value) => $"{value:N2} ₽";
+        #endregion
 
-        private void UpdateConfigurationPrice()
-        {
-            if (SelectedModel is null || SelectedFabric is null || SelectedMechanism is null)
-            {
-                ModelPriceText = FabricPriceText = MechanismPriceText = "—";
-                StoragePriceText = ConfigurationTotalText = ConfigurationQuantityTotalText = "—";
-                return;
-            }
+        public decimal GrandTotalPrice => OrderItems.Sum(item => item.TotalPrice);
 
-            decimal modules = StorageModules.Where(m => m.IsSelected).Sum(m => m.Item.Price);
-            decimal unitPrice = SelectedModel.Price + SelectedFabric.Price + SelectedMechanism.Price + modules;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(AddItemButtonText))]
+        private bool _isEditingItem;
 
-            int quantity = int.TryParse(QuantityText, out int q) && q > 0 ? q : 0;
-
-            ModelPriceText = Money(SelectedModel.Price);
-            FabricPriceText = Money(SelectedFabric.Price);
-            MechanismPriceText = Money(SelectedMechanism.Price);
-            StoragePriceText = Money(modules);
-            ConfigurationTotalText = Money(unitPrice);
-            ConfigurationQuantityTotalText = Money(unitPrice * quantity);
-        }
-
-
-
-        public ObservableCollection<OrderItemRow> Items { get; } = [];
+        public string AddItemButtonText => IsEditingItem ? "Сохранить изменения позиции" : "Добавить конфигурацию в заказ";
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(EditItemCommand))]
-        [NotifyCanExecuteChangedFor(nameof(RemoveItemCommand))]
-        private OrderItemRow? _selectedItemRow;
+        private OrderItemViewModel? _selectedItemRow;
 
         [ObservableProperty]
         private string _totalText = "Итого: 0,00 ₽";
 
-        private void RecalculateTotal()
-        {
-            TotalText = $"Итого: {Money(Items.Sum(i => i.TotalPrice))}";
-        }
 
         [RelayCommand]
         private async Task LoadAsync()
         {
             try
             {
-                var lookups = await _apiClient.GetAsync<OrderLookupsResponse>("api/orders/lookups")
-                              ?? new OrderLookupsResponse();
+                var lookups = await _apiClient.GetAsync<OrderDictionariesResponse>("api/orders/lookups")
+                              ?? new OrderDictionariesResponse();
 
                 Models = lookups.Models;
                 FabricCategories = lookups.FabricCategories;
@@ -333,7 +252,7 @@ namespace FurnitureSalon.Application.ViewModels
             UpdateHeader();
         }
 
-        private OrderItemRow CreateRow(OrderItemEditor data)
+        private OrderItemViewModel CreateRow(OrderItemEditor data)
         {
             var model = Models.FirstOrDefault(m => m.Id == data.IdModel);
             var fabric = FabricCategories.FirstOrDefault(f => f.Id == data.IdFabricCategory);
@@ -458,23 +377,6 @@ namespace FurnitureSalon.Application.ViewModels
 
             foreach (var module in StorageModules)
                 module.IsSelected = data.StorageModuleIds.Contains(module.Item.Id);
-        }
-
-        [RelayCommand]
-        private void CancelItemEdit()
-        {
-            EndItemEdit();
-        }
-
-        [RelayCommand(CanExecute = nameof(HasSelectedItem))]
-        private void RemoveItem()
-        {
-            var row = SelectedItemRow!;
-
-            if (ReferenceEquals(_editingRow, row))
-                EndItemEdit();
-
-            Items.Remove(row);
         }
 
         private void EndItemEdit()
