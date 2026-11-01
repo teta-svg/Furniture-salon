@@ -68,10 +68,10 @@ namespace FurnitureSalon.Application.ViewModels
                     break;
             }
         }
-
-
+        
         public ObservableCollection<OrderItemViewModel> OrderItems { get; } = [];
         public ClientInfoViewModel ClientInfo { get; } = new();
+
 
         #region поля для данных доставки
 
