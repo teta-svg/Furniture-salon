@@ -3,6 +3,7 @@ using FurnitureSalon.Api.Interfaces;
 using FurnitureSalon.Api.Repositories;
 using FurnitureSalon.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,8 +24,15 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwagger(options =>
+    {
+        options.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
+    });
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Furniture Salon API");
+        options.DisplayRequestDuration();
+    });
 }
 
 app.UseHttpsRedirection();
