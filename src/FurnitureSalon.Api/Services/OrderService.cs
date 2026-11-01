@@ -65,8 +65,8 @@ namespace FurnitureSalon.Api.Services
                 {
                     IdOrder = order.IdOrder,
                     ClientName = order.IdClientNavigation.ClientType == "Физическое лицо" ?
-                            $"{order.IdClientNavigation.PhysicalClient.Surname} {order.IdClientNavigation.PhysicalClient.Name.Trim()[0]}." :
-                            order.IdClientNavigation.LegalClient.CompanyName,
+                            $"{order.IdClientNavigation.PhysicalClient!.Surname} {order.IdClientNavigation.PhysicalClient.Name.Trim()[0]}." :
+                            order.IdClientNavigation.LegalClient!.CompanyName,
                     ClientType = order.IdClientNavigation.ClientType,
                     CreationDate = order.CreationDate,
                     TotalPrice = order.TotalPrice,
@@ -110,8 +110,8 @@ namespace FurnitureSalon.Api.Services
                 {
                     IdOrder = order.IdOrder,
                     ClientName = order.IdClientNavigation.ClientType == "Физическое лицо" ?
-                            $"{order.IdClientNavigation.PhysicalClient.Surname} {order.IdClientNavigation.PhysicalClient.Name.Trim()[0]}." :
-                            order.IdClientNavigation.LegalClient.CompanyName,
+                            $"{order.IdClientNavigation.PhysicalClient!.Surname} {order.IdClientNavigation.PhysicalClient.Name.Trim()[0]}." :
+                            order.IdClientNavigation.LegalClient!.CompanyName,
                     ClientType = order.IdClientNavigation.ClientType,
                     CreationDate = order.CreationDate,
                     TotalPrice = order.TotalPrice,
