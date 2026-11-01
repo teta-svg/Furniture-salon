@@ -346,28 +346,20 @@ namespace FurnitureSalon.Api.Services
         {
             if (dto.ClientType == PhysicalClientType)
             {
-                client.PhysicalClient = new PhysicalClient
-                {
-                    Surname = dto.PhysicalClient!.Surname.Trim(),
-                    Name = dto.PhysicalClient.Name.Trim(),
-                    Patronymic = dto.PhysicalClient.Patronymic?.Trim()
-                };
-
-                client.LegalClient = null;
+                var p = client.PhysicalClient ??= new PhysicalClient();
+                p.Surname = dto.PhysicalClient!.Surname.Trim();
+                p.Name = dto.PhysicalClient.Name.Trim();
+                p.Patronymic = dto.PhysicalClient.Patronymic?.Trim();
             }
             else if (dto.ClientType == LegalClientType)
             {
-                client.LegalClient = new LegalClient
-                {
-                    CompanyName = dto.LegalClient!.CompanyName.Trim(),
-                    Inn = dto.LegalClient.Inn.Trim(),
-                    Kpp = dto.LegalClient.Kpp?.Trim(),
-                    SurnameContactPerson = dto.LegalClient.SurnameContactPerson.Trim(),
-                    NameContactPerson = dto.LegalClient.NameContactPerson.Trim(),
-                    PatronymicContactPerson = dto.LegalClient.PatronymicContactPerson?.Trim()
-                };
-
-                client.PhysicalClient = null;
+                var l = client.LegalClient ??= new LegalClient();
+                l.CompanyName = dto.LegalClient!.CompanyName.Trim();
+                l.Inn = dto.LegalClient.Inn.Trim();
+                l.Kpp = dto.LegalClient.Kpp?.Trim();
+                l.SurnameContactPerson = dto.LegalClient.SurnameContactPerson.Trim();
+                l.NameContactPerson = dto.LegalClient.NameContactPerson.Trim();
+                l.PatronymicContactPerson = dto.LegalClient.PatronymicContactPerson?.Trim();
             }
         }
 

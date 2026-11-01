@@ -55,6 +55,8 @@ namespace FurnitureSalon.Application.ViewModels
         [NotifyPropertyChangedFor(nameof(TotalPrice))]
         private string _quantityText = "1";
 
+        public int IdOrderItem { get; set; }
+
         public int Quantity => int.TryParse(QuantityText, out var result) ? result : 0;
 
         public decimal TotalPrice

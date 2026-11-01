@@ -15,6 +15,8 @@ namespace FurnitureSalon.Application.ViewModels
         private int? _orderId;
         private string _orderStatus = string.Empty;
         private OrderItemViewModel? _editingRow;
+        private int _orderEmployeeId;
+        private OrderDictionariesResponse _dict = new();
 
         public ConfigViewModel(ApiClient apiClient, ICurrentUser currentUser, IConfigHelper configHelper)
         {
@@ -24,6 +26,9 @@ namespace FurnitureSalon.Application.ViewModels
 
             _orderId = _configHelper.IdOrder;
             Mode = _configHelper.EditorMode;
+
+            ItemEditor.PropertyChanged += (_, _) => UpdatePricePreview();
+            OrderItems.CollectionChanged += (_, _) => UpdateTotal();
 
             UpdateHeader();
         }
@@ -44,6 +49,7 @@ namespace FurnitureSalon.Application.ViewModels
         public bool CanEdit => Mode != OrderEditorMode.View;
         public bool IsClientTypeEditable => Mode == OrderEditorMode.Create;
         public string CloseButtonText => Mode == OrderEditorMode.View ? "Закрыть" : "Отмена";
+        public List<string> ClientTypes => ClientInfo.ClientTypes;
 
         private void UpdateHeader()
         {
@@ -115,7 +121,16 @@ namespace FurnitureSalon.Application.ViewModels
         {
             try
             {
-                var dict = await _apiClient.GetAsync<OrderDictionariesResponse>("api/orders/dict") ?? new OrderDictionariesResponse();
+                _dict = await _apiClient.GetAsync<OrderDictionariesResponse>("api/orders/dict")
+                        ?? new OrderDictionariesResponse();
+
+                ApplyDictionaries();
+
+                if (Mode == OrderEditorMode.Create || _orderId is null)
+                {
+                    UpdatePricePreview();
+                    return;
+                }
 
                 var order = await _apiClient.GetAsync<OrderResponse>($"api/orders/{_orderId}");
 
@@ -133,9 +148,49 @@ namespace FurnitureSalon.Application.ViewModels
             }
         }
 
+        private void ApplyDictionaries()
+        {
+            ItemEditor.Models = _dict.Models;
+            ItemEditor.FabricCategories = _dict.FabricCategories;
+            ItemEditor.Mechanisms = _dict.TransformationMechanisms;
+
+            ItemEditor.StorageModules.Clear();
+
+            foreach (var module in _dict.StorageModules)
+            {
+                var option = new StorageModuleOption(module);
+                option.PropertyChanged += (_, _) => UpdatePricePreview();
+                ItemEditor.StorageModules.Add(option);
+            }
+        }
+
+        private static string Money(decimal v) => $"{v:N2} ₽";
+
+        private void UpdatePricePreview()
+        {
+            var e = ItemEditor;
+
+            decimal model = e.SelectedModel?.Price ?? 0;
+            decimal fabric = e.SelectedFabric?.Price ?? 0;
+            decimal mechanism = e.SelectedMechanism?.Price ?? 0;
+            decimal modules = e.StorageModules.Where(m => m.IsSelected).Sum(m => m.Item.Price);
+            decimal config = model + fabric + mechanism + modules;
+
+            ModelPriceText = e.SelectedModel is null ? "—" : Money(model);
+            FabricPriceText = e.SelectedFabric is null ? "—" : Money(fabric);
+            MechanismPriceText = e.SelectedMechanism is null ? "—" : Money(mechanism);
+            StoragePriceText = Money(modules);
+            ConfigurationTotalText = Money(config);
+            ConfigurationQuantityTotalText = Money(config * e.Quantity);
+        }
+
+        private void UpdateTotal() => TotalText = $"Итого: {OrderItems.Sum(i => i.TotalPrice):N2} ₽";
+
         private void MapOrder(OrderResponse response)
         {
             var order = response.Order;
+
+            _orderEmployeeId = order.IdEmployee;
 
             MapClient(order.Client);
 
@@ -191,38 +246,34 @@ namespace FurnitureSalon.Application.ViewModels
         private OrderItemViewModel MapOrderItem(OrderItemConfigurationDto item)
         {
             var config = item.Configuration;
+            var selectedIds = config.StorageModules ?? [];
 
             var itemVm = new OrderItemViewModel
             {
+                IdOrderItem = item.IdOrderItem,
+                Models = _dict.Models,
+                FabricCategories = _dict.FabricCategories,
+                Mechanisms = _dict.TransformationMechanisms,
                 Color = config.Color ?? "Бежевый",
-
                 LengthText = config.Length.ToString(),
                 WidthText = config.Width.ToString(),
                 HeightText = config.Height.ToString(),
-
                 QuantityText = item.Quantity.ToString(),
-
-                CurrentStatus = item.CurrentStatus ?? "Принят",
-                PlannedReadyDate = item.PlannedReadyDate
+                CurrentStatus = item.CurrentStatus ?? "Ожидает производства",
+                PlannedReadyDate = item.PlannedReadyDate,
+                SelectedModel = _dict.Models.FirstOrDefault(m => m.Id == config.IdModel),
+                SelectedFabric = _dict.FabricCategories.FirstOrDefault(f => f.Id == config.IdFabricCategory),
+                SelectedMechanism = _dict.TransformationMechanisms.FirstOrDefault(m => m.Id == config.IdTransformationMechanism)
             };
 
-            itemVm.SelectedModel = itemVm.Models
-                .FirstOrDefault(m => m.Id == config.IdModel);
+            itemVm.DisplayName = itemVm.SelectedModel?.Name ?? $"Модель #{config.IdModel}";
 
-            itemVm.DisplayName = itemVm.SelectedModel?.Name
-                ?? $"Модель #{config.IdModel}";
-
-            itemVm.SelectedFabric = itemVm.FabricCategories
-                .FirstOrDefault(f => f.Id == config.IdFabricCategory);
-
-            itemVm.SelectedMechanism = itemVm.Mechanisms
-                .FirstOrDefault(m => m.Id == config.IdTransformationMechanism);
-
-            var selectedIds = config.StorageModules ?? [];
-
-            foreach (var module in itemVm.StorageModules)
+            foreach (var module in _dict.StorageModules)
             {
-                module.IsSelected = module.Item is not null && selectedIds.Contains(module.Item.Id);
+                itemVm.StorageModules.Add(new StorageModuleOption(module)
+                {
+                    IsSelected = selectedIds.Contains(module.Id)
+                });
             }
 
             return itemVm;
@@ -316,7 +367,6 @@ namespace FurnitureSalon.Application.ViewModels
             SelectedItem = item;
         }
 
-
         private bool HasSelectedItem() => SelectedItem is not null;
 
         [RelayCommand(CanExecute = nameof(HasSelectedItem))]
@@ -373,7 +423,7 @@ namespace FurnitureSalon.Application.ViewModels
             try
             {
                 if (Mode == OrderEditorMode.Create)
-                    await _apiClient.PutAsync("api/orders", request);
+                    await _apiClient.PostAsync("api/orders", request);
                 else
                     await _apiClient.PutAsync($"api/orders/{_orderId}", request);
 
