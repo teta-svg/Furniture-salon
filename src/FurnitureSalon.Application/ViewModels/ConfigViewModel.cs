@@ -312,7 +312,9 @@ namespace FurnitureSalon.Application.ViewModels
                 return;
             }
 
-            if (editor.PlannedReadyDate < DateOnly.FromDateTime(DateTime.Today))
+            bool dateChanged = _editingRow is null || editor.PlannedReadyDate != _editingRow.PlannedReadyDate;
+
+            if (dateChanged && editor.PlannedReadyDate < DateOnly.FromDateTime(DateTime.Today))
             {
                 MessageBox.Show("Плановая дата готовности не может быть в прошлом.");
                 return;
@@ -337,7 +339,7 @@ namespace FurnitureSalon.Application.ViewModels
                 QuantityText = quantity.ToString(),
 
                 PlannedReadyDate = editor.PlannedReadyDate,
-                CurrentStatus = _editingRow?.CurrentStatus ?? "Принят"
+                CurrentStatus = _editingRow?.CurrentStatus ?? "Ожидает производства"
             };
 
             foreach (var module in editor.StorageModules)
