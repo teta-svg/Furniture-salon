@@ -10,7 +10,14 @@ namespace FurnitureSalon.Application.ViewModels
         private string? _displayName;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(PlannedDate))]
         private DateOnly _plannedReadyDate = DateOnly.FromDateTime(DateTime.Today).AddDays(30);
+
+        public DateTime? PlannedDate
+        {
+            get => PlannedReadyDate.ToDateTime(TimeOnly.MinValue);
+            set { if (value is { } d) PlannedReadyDate = DateOnly.FromDateTime(d); }
+        }
 
         [ObservableProperty]
         private string _currentStatus = "Принят";

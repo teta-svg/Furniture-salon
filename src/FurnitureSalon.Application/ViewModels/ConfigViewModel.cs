@@ -322,6 +322,7 @@ namespace FurnitureSalon.Application.ViewModels
 
             var item = new OrderItemViewModel
             {
+                IdOrderItem = _editingRow?.IdOrderItem ?? 0,
                 Models = editor.Models,
                 FabricCategories = editor.FabricCategories,
                 Mechanisms = editor.Mechanisms,
@@ -474,10 +475,11 @@ namespace FurnitureSalon.Application.ViewModels
                         : null
                 },
 
-                IdEmployee = _currentUser.User!.IdEmployee,
+                IdEmployee = Mode == OrderEditorMode.Create ? _currentUser.User!.IdEmployee : _orderEmployeeId,
 
                 OrderItem = OrderItems.Select(item => new OrderItemConfigurationDto
                 {
+                    IdOrderItem = item.IdOrderItem,
                     Configuration = new ConfigurationDto
                     {
                         IdModel = item.SelectedModel!.Id,
