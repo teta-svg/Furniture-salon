@@ -24,8 +24,8 @@
                     <StackPanel>
                         <TextBlock Text="Клиент" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkBrush}"/>
                         <TextBlock Text="Тип клиента" Margin="0,12,0,5" FontWeight="SemiBold"/>
-                        <ComboBox ItemsSource="{Binding ClientTypes}" SelectedItem="{Binding SelectedClientType}" IsEnabled="{Binding IsClientTypeEditable}"/>
-                        <StackPanel Margin="0,10,0,0" Visibility="{Binding IsPhysicalClient, Converter={StaticResource BoolToVisibility}}">
+                        <ComboBox ItemsSource="{Binding ClientTypes}" SelectedItem="{Binding ClientInfo.SelectedClientType}" IsEnabled="{Binding IsClientTypeEditable}"/>
+                        <StackPanel Margin="0,10,0,0" Visibility="{Binding ClientInfo.IsPhysicalClient, Converter={StaticResource BoolToVisibility}}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -38,23 +38,23 @@
                                 </Grid.RowDefinitions>
                                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,10">
                                     <TextBlock Text="Фамилия" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Surname, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
+                                    <TextBox Text="{Binding ClientInfo.Surname, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
                                     <TextBlock Text="Имя" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
+                                    <TextBox Text="{Binding ClientInfo.Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="0">
                                     <TextBlock Text="Отчество" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Patronymic, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
+                                    <TextBox Text="{Binding ClientInfo.Patronymic, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="2">
                                     <TextBlock Text="Телефон" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"/>
+                                    <TextBox Text="{Binding ClientInfo.Phone, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
-                        <StackPanel Margin="0,10,0,0" Visibility="{Binding IsLegalClient, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Margin="0,10,0,0" Visibility="{Binding ClientInfo.IsLegalClient, Converter={StaticResource BoolToVisibility}}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -68,23 +68,23 @@
                                 </Grid.RowDefinitions>
                                 <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Margin="0,0,0,10">
                                     <TextBlock Text="Название компании" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding CompanyName, UpdateSourceTrigger=PropertyChanged}" MaxLength="150"/>
+                                    <TextBox Text="{Binding ClientInfo.CompanyName, UpdateSourceTrigger=PropertyChanged}" MaxLength="150"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,10">
                                     <TextBlock Text="ИНН" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Inn, UpdateSourceTrigger=PropertyChanged}" MaxLength="10"/>
+                                    <TextBox Text="{Binding ClientInfo.Inn, UpdateSourceTrigger=PropertyChanged}" MaxLength="10"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,10">
                                     <TextBlock Text="КПП" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Kpp, UpdateSourceTrigger=PropertyChanged}" MaxLength="9"/>
+                                    <TextBox Text="{Binding ClientInfo.Kpp, UpdateSourceTrigger=PropertyChanged}" MaxLength="9"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="2" Grid.Column="0">
                                     <TextBlock Text="Фамилия контактного лица" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding ContactSurname, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
+                                    <TextBox Text="{Binding ClientInfo.ContactSurname, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="2" Grid.Column="2">
                                     <TextBlock Text="Имя контактного лица" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding ContactName, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
+                                    <TextBox Text="{Binding ClientInfo.ContactName, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
                                 </StackPanel>
                             </Grid>
                             <Grid Margin="0,10,0,0">
@@ -95,11 +95,11 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Отчество контактного лица" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding ContactPatronymic, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
+                                    <TextBox Text="{Binding ClientInfo.ContactPatronymic, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="Телефон компании" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"/>
+                                    <TextBox Text="{Binding ClientInfo.Phone, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
@@ -118,21 +118,25 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
+
                             <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,10">
                                 <TextBlock Text="Город" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding DeliveryCity, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
+                                <TextBox Text="{Binding DeliveryInfo.DeliveryCity, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
                             </StackPanel>
+
                             <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
                                 <TextBlock Text="Улица" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding DeliveryStreet, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"/>
+                                <TextBox Text="{Binding DeliveryInfo.DeliveryStreet, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"/>
                             </StackPanel>
+
                             <StackPanel Grid.Row="1" Grid.Column="0">
                                 <TextBlock Text="Дом" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding DeliveryBuilding, UpdateSourceTrigger=PropertyChanged}" MaxLength="10"/>
+                                <TextBox Text="{Binding DeliveryInfo.DeliveryBuilding, UpdateSourceTrigger=PropertyChanged}" MaxLength="10"/>
                             </StackPanel>
+
                             <StackPanel Grid.Row="1" Grid.Column="2">
                                 <TextBlock Text="Квартира / офис" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding DeliveryApartment, UpdateSourceTrigger=PropertyChanged}" MaxLength="10"/>
+                                <TextBox Text="{Binding DeliveryInfo.DeliveryApartment, UpdateSourceTrigger=PropertyChanged}" MaxLength="10"/>
                             </StackPanel>
                         </Grid>
                     </StackPanel>
@@ -155,19 +159,19 @@
                                 </Grid.RowDefinitions>
                                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,10">
                                     <TextBlock Text="Модель" Margin="0,0,0,4"/>
-                                    <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel}" DisplayMemberPath="Name"/>
+                                    <ComboBox ItemsSource="{Binding ItemEditor.Models}" SelectedItem="{Binding ItemEditor.SelectedModel}" DisplayMemberPath="Name"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
                                     <TextBlock Text="Категория ткани" Margin="0,0,0,4"/>
-                                    <ComboBox ItemsSource="{Binding FabricCategories}" SelectedItem="{Binding SelectedFabric}" DisplayMemberPath="Name"/>
+                                    <ComboBox ItemsSource="{Binding ItemEditor.FabricCategories}" SelectedItem="{Binding ItemEditor.SelectedFabric}" DisplayMemberPath="Name"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,10">
                                     <TextBlock Text="Механизм трансформации" Margin="0,0,0,4"/>
-                                    <ComboBox ItemsSource="{Binding Mechanisms}" SelectedItem="{Binding SelectedMechanism}" DisplayMemberPath="Name"/>
+                                    <ComboBox ItemsSource="{Binding ItemEditor.Mechanisms}" SelectedItem="{Binding ItemEditor.SelectedMechanism}" DisplayMemberPath="Name"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,10">
                                     <TextBlock Text="Цвет" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
+                                    <TextBox Text="{Binding ItemEditor.Color, UpdateSourceTrigger=PropertyChanged}" MaxLength="50"/>
                                 </StackPanel>
                                 <StackPanel Grid.Row="2" Grid.Column="0">
                                     <TextBlock Text="Размеры, см (Д × Ш × В)" Margin="0,0,0,4"/>
@@ -179,19 +183,20 @@
                                             <ColumnDefinition Width="6"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBox Text="{Binding LengthText, UpdateSourceTrigger=PropertyChanged}" MaxLength="4"/>
-                                        <TextBox Grid.Column="2" Text="{Binding WidthText, UpdateSourceTrigger=PropertyChanged}" MaxLength="4"/>
-                                        <TextBox Grid.Column="4" Text="{Binding HeightText, UpdateSourceTrigger=PropertyChanged}" MaxLength="4"/>
+
+                                        <TextBox Text="{Binding ItemEditor.LengthText, UpdateSourceTrigger=PropertyChanged}" MaxLength="4"/>
+                                        <TextBox Grid.Column="2" Text="{Binding ItemEditor.WidthText, UpdateSourceTrigger=PropertyChanged}" MaxLength="4"/>
+                                        <TextBox Grid.Column="4" Text="{Binding ItemEditor.HeightText, UpdateSourceTrigger=PropertyChanged}" MaxLength="4"/>
                                     </Grid>
                                 </StackPanel>
                                 <StackPanel Grid.Row="2" Grid.Column="2">
                                     <TextBlock Text="Модули хранения (необязательно)" Margin="0,0,0,4"/>
                                     <Border BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="{StaticResource ControlRadius}" Background="White">
                                         <ScrollViewer Height="76" VerticalScrollBarVisibility="Auto">
-                                            <ItemsControl ItemsSource="{Binding StorageModules}" Margin="8,4">
+                                            <ItemsControl ItemsSource="{Binding ItemEditor.StorageModules}" Margin="8,4">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected}" Margin="0,2"/>
+                                                        <CheckBox Content="{Binding Item.Name}" IsChecked="{Binding IsSelected}" Margin="0,2"/>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
@@ -209,18 +214,18 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Количество" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding QuantityText, UpdateSourceTrigger=PropertyChanged}" MaxLength="4"/>
+                                    <TextBox Text="{Binding ItemEditor.QuantityText, UpdateSourceTrigger=PropertyChanged}" MaxLength="4"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="Плановая готовность" Margin="0,0,0,4"/>
-                                    <DatePicker SelectedDate="{Binding PlannedDate}"/>
+                                    <DatePicker SelectedDate="{Binding ItemEditor.PlannedDate}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right">
                                     <Button Content="{Binding AddItemButtonText}" Style="{StaticResource SecondaryButton}" Command="{Binding AddItemCommand}"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
-                        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItemRow, Mode=TwoWay}" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" MinHeight="130" MaxHeight="230" Margin="0,14,0,0">
+                        <DataGrid ItemsSource="{Binding OrderItems}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" MinHeight="130" MaxHeight="230" Margin="0,14,0,0">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Изделие" Binding="{Binding DisplayName}" Width="3*"/>
                                 <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity}" Width="70"/>

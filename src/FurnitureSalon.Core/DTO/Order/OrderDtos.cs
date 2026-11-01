@@ -23,7 +23,7 @@
         public int IdEmployee { get; set; }
         public List<OrderItemConfigurationDto> OrderItem { get; set; } = new();
         public DateOnly CreationDate { get; set; }
-        public decimal TotalPrice { get; set; }
+        public decimal? TotalPrice { get; set; }
         public string DeliveryCity { get; set; } = null!;
         public string DeliveryStreet { get; set; } = null!;
         public string DeliveryBuilding { get; set; } = null!;
@@ -57,8 +57,9 @@
 
     public class OrderItemConfigurationDto
     {
+        public int IdOrderItem { get; set; }
         public ConfigurationDto Configuration { get; set; } = new();
-        public DateTime? PlannedReadyDate { get; set; }
+        public DateOnly PlannedReadyDate { get; set; }
         public int Quantity { get; set; }
         public string CurrentStatus { get; set; } = null!;
     }
