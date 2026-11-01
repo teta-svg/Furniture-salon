@@ -58,8 +58,9 @@
     public class OrderItemConfigurationDto
     {
         public ConfigurationDto Configuration { get; set; } = new();
-        public DateOnly PlannedReadyDate { get; set; }
+        public DateTime? PlannedReadyDate { get; set; }
         public int Quantity { get; set; }
+        public string CurrentStatus { get; set; } = null!;
     }
 
     public class ConfigurationDto

@@ -71,23 +71,7 @@ namespace FurnitureSalon.Application.ViewModels
         
         public ObservableCollection<OrderItemViewModel> OrderItems { get; } = [];
         public ClientInfoViewModel ClientInfo { get; } = new();
-
-
-        #region поля для данных доставки
-
-        [ObservableProperty]
-        private string _deliveryCity = string.Empty;
-
-        [ObservableProperty]
-        private string _deliveryStreet = string.Empty;
-
-        [ObservableProperty]
-        private string _deliveryBuilding = string.Empty;
-
-        [ObservableProperty]
-        private string _deliveryApartment = string.Empty;
-
-        #endregion
+        public DeliveryInfoViewModel DeliveryInfo { get; } = new();
 
         #region поля для цены
 
@@ -111,7 +95,6 @@ namespace FurnitureSalon.Application.ViewModels
 
         #endregion
 
-        public decimal GrandTotalPrice => OrderItems.Sum(item => item.TotalPrice);
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(AddItemButtonText))]
@@ -121,7 +104,7 @@ namespace FurnitureSalon.Application.ViewModels
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(EditItemCommand))]
-        private OrderItemViewModel? _selectedItemRow;
+        private OrderItemViewModel? _selectedItem;
 
         [ObservableProperty]
         private string _totalText = "Итого: 0,00 ₽";
@@ -132,30 +115,9 @@ namespace FurnitureSalon.Application.ViewModels
         {
             try
             {
-                var lookups = await _apiClient.GetAsync<OrderDictionariesResponse>("api/orders/lookups")
-                              ?? new OrderDictionariesResponse();
+                var dict = await _apiClient.GetAsync<OrderDictionariesResponse>("api/orders/dict") ?? new OrderDictionariesResponse();
 
-                Models = lookups.Models;
-                FabricCategories = lookups.FabricCategories;
-                Mechanisms = lookups.TransformationMechanisms;
-
-                StorageModules.Clear();
-
-                foreach (var module in lookups.StorageModules)
-                {
-                    var option = new StorageModuleOption(module);
-                    option.PropertyChanged += (_, _) => UpdateConfigurationPrice();
-                    StorageModules.Add(option);
-                }
-
-                SelectedModel = Models.FirstOrDefault();
-                SelectedFabric = FabricCategories.FirstOrDefault();
-                SelectedMechanism = Mechanisms.FirstOrDefault();
-
-                if (Mode == OrderEditorMode.Create)
-                    return;
-
-                var order = await _apiClient.GetAsync<OrderEditor>($"api/orders/{_orderId}");
+                var order = await _apiClient.GetAsync<OrderResponse>($"api/orders/{_orderId}");
 
                 if (order is null)
                 {
@@ -163,7 +125,7 @@ namespace FurnitureSalon.Application.ViewModels
                     return;
                 }
 
-                FillFromOrder(order);
+                MapOrder(order);
             }
             catch (Exception ex)
             {
@@ -171,34 +133,99 @@ namespace FurnitureSalon.Application.ViewModels
             }
         }
 
-        private void FillFromOrder(OrderEditor order)
+        private void MapOrder(OrderResponse response)
         {
-            SelectedClientType = order.ClientType;
-            Phone = order.Phone;
+            var order = response.Order;
 
-            Surname = order.Surname ?? string.Empty;
-            Name = order.Name ?? string.Empty;
-            Patronymic = order.Patronymic ?? string.Empty;
+            MapClient(order.Client);
 
-            CompanyName = order.CompanyName ?? string.Empty;
-            Inn = order.Inn ?? string.Empty;
-            Kpp = order.Kpp ?? string.Empty;
-            ContactSurname = order.ContactSurname ?? string.Empty;
-            ContactName = order.ContactName ?? string.Empty;
-            ContactPatronymic = order.ContactPatronymic ?? string.Empty;
+            MapDelivery(order);
 
-            DeliveryCity = order.DeliveryCity;
-            DeliveryStreet = order.DeliveryStreet;
-            DeliveryBuilding = order.DeliveryBuilding;
-            DeliveryApartment = order.DeliveryApartment ?? string.Empty;
+            OrderItems.Clear();
 
-            Items.Clear();
+            foreach (var item in order.OrderItem)
+            {
+                OrderItems.Add(MapOrderItem(item));
+            }
 
-            foreach (var item in order.Items)
-                Items.Add(CreateRow(item));
-
-            _orderStatus = order.CurrentStatus;
             UpdateHeader();
+        }
+
+        private void MapClient(ClientDto client)
+        {
+            ClientInfo.SelectedClientType = client.ClientType ?? string.Empty;
+            ClientInfo.Phone = client.Phone ?? string.Empty;
+
+            if (client.PhysicalClient is not null)
+            {
+                ClientInfo.Surname = client.PhysicalClient.Surname ?? string.Empty;
+                ClientInfo.Name = client.PhysicalClient.Name ?? string.Empty;
+                ClientInfo.Patronymic = client.PhysicalClient.Patronymic ?? string.Empty;
+            }
+
+            if (client.LegalClient is not null)
+            {
+                ClientInfo.CompanyName = client.LegalClient.CompanyName ?? string.Empty;
+                ClientInfo.Inn = client.LegalClient.Inn ?? string.Empty;
+                ClientInfo.Kpp = client.LegalClient.Kpp ?? string.Empty;
+
+                ClientInfo.ContactSurname =
+                    client.LegalClient.SurnameContactPerson ?? string.Empty;
+
+                ClientInfo.ContactName =
+                    client.LegalClient.NameContactPerson ?? string.Empty;
+
+                ClientInfo.ContactPatronymic =
+                    client.LegalClient.PatronymicContactPerson ?? string.Empty;
+            }
+        }
+
+        private void MapDelivery(OrderDto order)
+        {
+            DeliveryInfo.DeliveryCity = order.DeliveryCity ?? string.Empty;
+            DeliveryInfo.DeliveryStreet = order.DeliveryStreet ?? string.Empty;
+            DeliveryInfo.DeliveryBuilding = order.DeliveryBuilding ?? string.Empty;
+            DeliveryInfo.DeliveryApartment = order.DeliveryApartment ?? string.Empty;
+        }
+
+        private OrderItemViewModel MapOrderItem(OrderItemConfigurationDto item)
+        {
+            var config = item.Configuration;
+
+            var itemVm = new OrderItemViewModel
+            {
+                Color = config.Color ?? "Бежевый",
+
+                LengthText = config.Length.ToString(),
+                WidthText = config.Width.ToString(),
+                HeightText = config.Height.ToString(),
+
+                QuantityText = item.Quantity.ToString(),
+
+                CurrentStatus = item.CurrentStatus ?? "Принят",
+                PlannedReadyDate = item.PlannedReadyDate
+            };
+
+            itemVm.SelectedModel = itemVm.Models
+                .FirstOrDefault(m => m.Id == config.IdModel);
+
+            itemVm.DisplayName = itemVm.SelectedModel?.Name
+                ?? $"Модель #{config.IdModel}";
+
+            itemVm.SelectedFabric = itemVm.FabricCategories
+                .FirstOrDefault(f => f.Id == config.IdFabricCategory);
+
+            itemVm.SelectedMechanism = itemVm.Mechanisms
+                .FirstOrDefault(m => m.Id == config.IdTransformationMechanism);
+
+            var selectedIds = config.StorageModules ?? [];
+
+            foreach (var module in itemVm.StorageModules)
+            {
+                module.IsSelected = module.Item is not null && selectedIds.Contains(module.Item.Id);
+            }
+
+            return itemVm;
         }
 
         private OrderItemViewModel CreateRow(OrderItemEditor data)
