@@ -10,7 +10,7 @@ namespace FurnitureSalon.Application.ViewModels
         private string? _displayName;
 
         [ObservableProperty]
-        private DateTime? _plannedReadyDate = DateTime.Today.AddDays(30);
+        private DateOnly _plannedReadyDate = DateOnly.FromDateTime(DateTime.Today).AddDays(30);
 
         [ObservableProperty]
         private string _currentStatus = "Принят";
@@ -63,8 +63,18 @@ namespace FurnitureSalon.Application.ViewModels
         {
             get
             {
+                if (SelectedModel is null || SelectedFabric is null || SelectedMechanism is null)
+                    return 0;
 
-                return 0;
+                decimal modelPrice = SelectedModel.Price;
+                decimal fabricPrice = SelectedFabric.Price;
+                decimal mechanismPrice = SelectedMechanism.Price;
+
+                decimal modulesPrice = StorageModules
+                    .Where(module => module.IsSelected)
+                    .Sum(module => module.Item.Price);
+
+                return (modelPrice + fabricPrice + mechanismPrice + modulesPrice) * Quantity;
             }
         }
     }
