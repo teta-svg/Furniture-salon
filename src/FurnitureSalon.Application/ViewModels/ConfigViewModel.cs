@@ -13,7 +13,6 @@ namespace FurnitureSalon.Application.ViewModels
         private readonly ApiClient _apiClient;
         private readonly ICurrentUser _currentUser;
         private readonly IConfigHelper _configHelper;
-
         private int? _orderId;
         private string _orderStatus = string.Empty;
         private OrderItemViewModel? _editingRow;
@@ -30,27 +29,21 @@ namespace FurnitureSalon.Application.ViewModels
             UpdateHeader();
         }
 
-        private const string PhysicalClientType = "Физическое лицо";
-        private const string LegalClientType = "Юридическое лицо";
-
         public event Action<bool>? CloseRequested;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanEdit))]
         [NotifyPropertyChangedFor(nameof(IsClientTypeEditable))]
         [NotifyPropertyChangedFor(nameof(CloseButtonText))]
-        private OrderEditorMode mode = OrderEditorMode.Create;
+        private OrderEditorMode _mode = OrderEditorMode.Create;
 
-        [ObservableProperty]
-        private string title = string.Empty;
+        partial void OnModeChanged(OrderEditorMode value) => UpdateHeader();
 
-        [ObservableProperty]
-        private string subtitle = string.Empty;
+        [ObservableProperty] private string _title = string.Empty;
+        [ObservableProperty] private string _subtitle = string.Empty;
 
         public bool CanEdit => Mode != OrderEditorMode.View;
-
         public bool IsClientTypeEditable => Mode == OrderEditorMode.Create;
-
         public string CloseButtonText => Mode == OrderEditorMode.View ? "Закрыть" : "Отмена";
 
         private void UpdateHeader()
@@ -76,53 +69,9 @@ namespace FurnitureSalon.Application.ViewModels
             }
         }
 
+
         public ObservableCollection<OrderItemViewModel> OrderItems { get; } = [];
-
-        [ObservableProperty]
-        private List<string> clientTypes = [PhysicalClientType, LegalClientType];
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(IsPhysicalClient))]
-        [NotifyPropertyChangedFor(nameof(IsLegalClient))]
-        private string _selectedClientType = PhysicalClientType;
-
-        public bool IsPhysicalClient => SelectedClientType == PhysicalClientType;
-
-        public bool IsLegalClient => SelectedClientType == LegalClientType;
-
-        #region поля для данных клиента 
-
-        [ObservableProperty]
-        private string _phone = string.Empty;
-
-        [ObservableProperty]
-        private string _surname = string.Empty;
-
-        [ObservableProperty]
-        private string _name = string.Empty;
-
-        [ObservableProperty]
-        private string _patronymic = string.Empty;
-
-        [ObservableProperty]
-        private string _companyName = string.Empty;
-
-        [ObservableProperty]
-        private string _inn = string.Empty;
-
-        [ObservableProperty]
-        private string _kpp = string.Empty;
-
-        [ObservableProperty]
-        private string _contactSurname = string.Empty;
-
-        [ObservableProperty]
-        private string _contactName = string.Empty;
-
-        [ObservableProperty]
-        private string _contactPatronymic = string.Empty;
-
-        #endregion
+        public ClientInfoViewModel ClientInfo { get; } = new();
 
         #region поля для данных доставки
 
