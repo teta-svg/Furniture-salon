@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using FurnitureSalon.Application.Shared;
 using FurnitureSalon.Application.Views;
 using FurnitureSalon.Core.DTO.Order;
+using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Windows;
 
@@ -12,15 +13,25 @@ namespace FurnitureSalon.Application.ViewModels
     {
         private readonly ApiClient _apiClient;
         private readonly IWindowService _windowService;
+        private readonly ICurrentUser _currentUser;
+        private readonly IConfigHelper _configHelper;
 
-        public MainWindowViewModel(ApiClient apiClient, IWindowService windowService)
+        public MainWindowViewModel(ApiClient apiClient, IWindowService windowService, ICurrentUser currentUser, IConfigHelper configHelper)
         {
             _apiClient = apiClient;
             _windowService = windowService;
+            _currentUser = currentUser;
+            _configHelper = configHelper;
+
+            EmployeeName = $"{_currentUser.User?.Surname} {_currentUser.User?.Name.Trim()[0]}. " +
+                $"{(!string.IsNullOrWhiteSpace(_currentUser.User?.Patronymic) 
+                ? $"{_currentUser.User?.Patronymic.Trim()[0]}." : string.Empty)}".Trim();
+            EmployeeInitial = $"{_currentUser.User?.Surname.Trim()[0]}";
+            EmployeeRole = _currentUser.User?.EmployeeRole;
         }
 
         [ObservableProperty]
-        private List<OrderListResponse> orders = [];
+        private ObservableCollection<OrderListResponse> orders = [];
 
         [ObservableProperty]
         private string? searchText;
@@ -33,47 +44,33 @@ namespace FurnitureSalon.Application.ViewModels
         [NotifyCanExecuteChangedFor(nameof(EditOrderCommand))]
         private OrderListResponse? selectedOrder;
 
-        public List<string> Statuses { get; } =
-            [
+        [ObservableProperty]
+        private List<string> statuses =
+        [
             "Все",
             "В производстве",
             "Ожидает производства",
             "Готов",
             "Отменён",
             "Доставлен"
-            ];
+        ];
 
-        public string EmployeeName
-        {
-            get
-            {
-                var user = CurrentUser.User;
-                if (user is null) return string.Empty;
+        [ObservableProperty]
+        private string? employeeName;
 
-                string initials = string.Concat(
-                    new[] { user.Name, user.Patronymic }
-                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                        .Select(s => $"{s.Trim()[0]}. "));
+        [ObservableProperty]
+        private string? employeeRole;
 
-                return $"{user.Surname} {initials}".Trim();
-            }
-        }
+        [ObservableProperty]
+        private string? employeeInitial;
 
-        public string EmployeeRole => CurrentUser.User?.EmployeeRole ?? string.Empty;
-
-        public string EmployeeInitial =>
-            string.IsNullOrWhiteSpace(CurrentUser.User?.Surname)
-                ? "?"
-                : CurrentUser.User!.Surname.Trim()[0].ToString().ToUpper();
-
-        [RelayCommand]
-        private async Task LoadOrdersAsync()
+        private async Task ExecuteApiRequestAsync(Func<Task<List<OrderListResponse>?>> execute)
         {
             try
             {
-                var response = await _apiClient.GetAsync<List<OrderListResponse>>("api/orders");
+                var response = await execute();
 
-                Orders = response ?? [];
+                Orders = new ObservableCollection<OrderListResponse>(response ?? []);
             }
             catch (HttpRequestException)
             {
@@ -87,6 +84,13 @@ namespace FurnitureSalon.Application.ViewModels
             {
                 MessageBox.Show($"Ошибка: {ex.Message}");
             }
+        }
+
+
+        [RelayCommand]
+        private async Task LoadOrdersAsync()
+        {
+            await ExecuteApiRequestAsync(() =>_apiClient.GetAsync<List<OrderListResponse>>("api/orders"));
         }
 
         [RelayCommand]
@@ -98,58 +102,37 @@ namespace FurnitureSalon.Application.ViewModels
                 Status = SelectedStatus == "Все" ? null : SelectedStatus
             };
 
-            try
-            {
-                var response = await _apiClient.PostAsync<OrderSearchRequest, List<OrderListResponse>>("api/search/orders", request);
-
-                Orders = response ?? [];
-            }
-            catch (HttpRequestException)
-            {
-                MessageBox.Show("Не удалось связаться с сервером.");
-            }
-            catch (TaskCanceledException)
-            {
-                MessageBox.Show("Время ожидания ответа истекло.");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка: {ex.Message}");
-            }
+            await ExecuteApiRequestAsync(() => _apiClient.PostAsync<OrderSearchRequest, List<OrderListResponse>>("api/search/orders", request));
         }
 
         [RelayCommand]
-        private async Task CreateOrderAsync()
+        private async Task CreateOrder()
         {
-            await OpenOrderAsync(OrderEditorMode.Create, 0);
+            await OpenConfigWindowAsync(OrderEditorMode.Create, null);
         }
 
         private bool HasSelectedOrder() => SelectedOrder is not null;
 
         [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
-        private async Task ViewOrderAsync()
+        private async Task ViewOrder()
         {
-            await OpenOrderAsync(OrderEditorMode.View, SelectedOrder!.IdOrder);
+           await OpenConfigWindowAsync(OrderEditorMode.View, SelectedOrder?.IdOrder);
         }
 
         [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
-        private async Task EditOrderAsync()
+        private async Task EditOrder()
         {
-            await OpenOrderAsync(OrderEditorMode.Edit, SelectedOrder!.IdOrder);
+            await OpenConfigWindowAsync(OrderEditorMode.Edit, SelectedOrder?.IdOrder);
         }
 
-        private async Task OpenOrderAsync(OrderEditorMode mode, int orderId)
+        private async Task OpenConfigWindowAsync(OrderEditorMode editorMode, int? idOrder)
         {
-            bool? saved = _windowService.ShowDialog<ConfigWindow, ConfigViewModel>(
-                viewModel => viewModel.Initialize(mode, orderId));
+            _configHelper.EditorMode = editorMode;
+            _configHelper.IdOrder = idOrder;
 
-            if (saved == true)
-            {
-                if (string.IsNullOrWhiteSpace(SearchText) && SelectedStatus == "Все")
-                    await LoadOrdersAsync();
-                else
-                    await SearchAsync();
-            }
+            _windowService.ShowWindow<ConfigWindow>();
+
+            await LoadOrdersAsync();
         }
     }
 }

@@ -3,41 +3,37 @@ using CommunityToolkit.Mvvm.Input;
 using FurnitureSalon.Application.Shared;
 using FurnitureSalon.Core.DTO.Order;
 using System.Collections.ObjectModel;
-using System.Net.Http;
+using System.Windows;
 
 namespace FurnitureSalon.Application.ViewModels
 {
     public partial class ConfigViewModel : ObservableObject
     {
-        private const string PhysicalClientType = "Физическое лицо";
-        private const string LegalClientType = "Юридическое лицо";
-
         private readonly ApiClient _apiClient;
-
-        private int _orderId;
+        private readonly ICurrentUser _currentUser;
+        private readonly IConfigHelper _configHelper;
+        private int? _orderId;
         private string _orderStatus = string.Empty;
-        private OrderItemRow? _editingRow;
+        private OrderItemViewModel? _editingRow;
+        private int _orderEmployeeId;
+        private OrderDictionariesResponse _dict = new();
 
-        public ConfigViewModel(ApiClient apiClient)
+        public ConfigViewModel(ApiClient apiClient, ICurrentUser currentUser, IConfigHelper configHelper)
         {
             _apiClient = apiClient;
+            _currentUser = currentUser;
+            _configHelper = configHelper;
 
-            Items.CollectionChanged += (_, _) => RecalculateTotal();
+            _orderId = _configHelper.IdOrder;
+            Mode = _configHelper.EditorMode;
+
+            ItemEditor.PropertyChanged += (_, _) => UpdatePricePreview();
+            OrderItems.CollectionChanged += (_, _) => UpdateTotal();
 
             UpdateHeader();
         }
 
         public event Action<bool>? CloseRequested;
-
-        public void Initialize(OrderEditorMode mode, int orderId = 0)
-        {
-            _orderId = orderId;
-            Mode = mode;
-
-            UpdateHeader();
-        }
-
-        // режим и заголовок
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanEdit))]
@@ -45,17 +41,17 @@ namespace FurnitureSalon.Application.ViewModels
         [NotifyPropertyChangedFor(nameof(CloseButtonText))]
         private OrderEditorMode _mode = OrderEditorMode.Create;
 
-        [ObservableProperty]
-        private string _title = string.Empty;
+        partial void OnModeChanged(OrderEditorMode value) => UpdateHeader();
 
-        [ObservableProperty]
+        [ObservableProperty] 
+        private string _title = string.Empty;
+        [ObservableProperty] 
         private string _subtitle = string.Empty;
 
         public bool CanEdit => Mode != OrderEditorMode.View;
-
         public bool IsClientTypeEditable => Mode == OrderEditorMode.Create;
-
         public string CloseButtonText => Mode == OrderEditorMode.View ? "Закрыть" : "Отмена";
+        public List<string> ClientTypes => ClientInfo.ClientTypes;
 
         private void UpdateHeader()
         {
@@ -79,121 +75,13 @@ namespace FurnitureSalon.Application.ViewModels
                     break;
             }
         }
+        
+        public ObservableCollection<OrderItemViewModel> OrderItems { get; } = [];
+        public OrderItemViewModel ItemEditor { get; } = new();
+        public ClientInfoViewModel ClientInfo { get; } = new();
+        public DeliveryInfoViewModel DeliveryInfo { get; } = new();
 
-        public List<string> ClientTypes { get; } = [PhysicalClientType, LegalClientType];
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(IsPhysicalClient))]
-        [NotifyPropertyChangedFor(nameof(IsLegalClient))]
-        private string _selectedClientType = PhysicalClientType;
-
-        public bool IsPhysicalClient => SelectedClientType == PhysicalClientType;
-
-        public bool IsLegalClient => SelectedClientType == LegalClientType;
-
-        [ObservableProperty]
-        private string _phone = string.Empty;
-
-        [ObservableProperty]
-        private string _surname = string.Empty;
-
-        [ObservableProperty]
-        private string _name = string.Empty;
-
-        [ObservableProperty]
-        private string _patronymic = string.Empty;
-
-
-        [ObservableProperty]
-        private string _companyName = string.Empty;
-
-        [ObservableProperty]
-        private string _inn = string.Empty;
-
-        [ObservableProperty]
-        private string _kpp = string.Empty;
-
-        [ObservableProperty]
-        private string _contactSurname = string.Empty;
-
-        [ObservableProperty]
-        private string _contactName = string.Empty;
-
-        [ObservableProperty]
-        private string _contactPatronymic = string.Empty;
-
-
-
-
-        [ObservableProperty]
-        private string _deliveryCity = string.Empty;
-
-        [ObservableProperty]
-        private string _deliveryStreet = string.Empty;
-
-        [ObservableProperty]
-        private string _deliveryBuilding = string.Empty;
-
-        [ObservableProperty]
-        private string _deliveryApartment = string.Empty;
-
-
-
-
-        [ObservableProperty]
-        private List<LookupItem> _models = [];
-
-        [ObservableProperty]
-        private List<LookupItem> _fabricCategories = [];
-
-        [ObservableProperty]
-        private List<LookupItem> _mechanisms = [];
-
-        public ObservableCollection<StorageModuleOption> StorageModules { get; } = [];
-
-
-
-
-        [ObservableProperty]
-        private LookupItem? _selectedModel;
-
-        [ObservableProperty]
-        private LookupItem? _selectedFabric;
-
-        [ObservableProperty]
-        private LookupItem? _selectedMechanism;
-
-        [ObservableProperty]
-        private string _color = "Бежевый";
-
-        [ObservableProperty]
-        private string _lengthText = "200";
-
-        [ObservableProperty]
-        private string _widthText = "90";
-
-        [ObservableProperty]
-        private string _heightText = "80";
-
-        [ObservableProperty]
-        private string _quantityText = "1";
-
-        [ObservableProperty]
-        private DateTime? _plannedDate = DateTime.Today.AddDays(30);
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(AddItemButtonText))]
-        private bool _isEditingItem;
-
-        public string AddItemButtonText =>
-            IsEditingItem ? "Сохранить изменения позиции" : "Добавить конфигурацию в заказ";
-
-        partial void OnSelectedModelChanged(LookupItem? value) => UpdateConfigurationPrice();
-        partial void OnSelectedFabricChanged(LookupItem? value) => UpdateConfigurationPrice();
-        partial void OnSelectedMechanismChanged(LookupItem? value) => UpdateConfigurationPrice();
-        partial void OnQuantityTextChanged(string value) => UpdateConfigurationPrice();
-
-
+        #region поля для цены
 
         [ObservableProperty]
         private string _modelPriceText = "—";
@@ -213,380 +101,325 @@ namespace FurnitureSalon.Application.ViewModels
         [ObservableProperty]
         private string _configurationQuantityTotalText = "—";
 
-        private static string Money(decimal value) => $"{value:N2} ₽";
-
-        private void UpdateConfigurationPrice()
-        {
-            if (SelectedModel is null || SelectedFabric is null || SelectedMechanism is null)
-            {
-                ModelPriceText = FabricPriceText = MechanismPriceText = "—";
-                StoragePriceText = ConfigurationTotalText = ConfigurationQuantityTotalText = "—";
-                return;
-            }
-
-            decimal modules = StorageModules.Where(m => m.IsSelected).Sum(m => m.Item.Price);
-            decimal unitPrice = SelectedModel.Price + SelectedFabric.Price + SelectedMechanism.Price + modules;
-
-            int quantity = int.TryParse(QuantityText, out int q) && q > 0 ? q : 0;
-
-            ModelPriceText = Money(SelectedModel.Price);
-            FabricPriceText = Money(SelectedFabric.Price);
-            MechanismPriceText = Money(SelectedMechanism.Price);
-            StoragePriceText = Money(modules);
-            ConfigurationTotalText = Money(unitPrice);
-            ConfigurationQuantityTotalText = Money(unitPrice * quantity);
-        }
+        #endregion
 
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(AddItemButtonText))]
+        private bool _isEditingItem;
 
-        public ObservableCollection<OrderItemRow> Items { get; } = [];
+        public string AddItemButtonText => IsEditingItem ? "Сохранить изменения позиции" : "Добавить конфигурацию в заказ";
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(EditItemCommand))]
-        [NotifyCanExecuteChangedFor(nameof(RemoveItemCommand))]
-        private OrderItemRow? _selectedItemRow;
+        private OrderItemViewModel? _selectedItem;
 
         [ObservableProperty]
         private string _totalText = "Итого: 0,00 ₽";
-
-        private void RecalculateTotal()
-        {
-            TotalText = $"Итого: {Money(Items.Sum(i => i.TotalPrice))}";
-        }
-
-
-
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(HasError))]
-        private string _errorText = string.Empty;
-
-        public bool HasError => !string.IsNullOrEmpty(ErrorText);
-
-        private void ShowError(Exception ex)
-        {
-            ErrorText = ex switch
-            {
-                HttpRequestException http when http.StatusCode is null => "Не удалось связаться с сервером.",
-                HttpRequestException http => http.Message,
-                TaskCanceledException => "Время ожидания ответа истекло.",
-                _ => $"Ошибка: {ex.Message}"
-            };
-        }
-
-
 
 
         [RelayCommand]
         private async Task LoadAsync()
         {
-            ErrorText = string.Empty;
-
             try
             {
-                var lookups = await _apiClient.GetAsync<OrderLookupsResponse>("api/orders/lookups")
-                              ?? new OrderLookupsResponse();
+                _dict = await _apiClient.GetAsync<OrderDictionariesResponse>("api/orders/dict")
+                        ?? new OrderDictionariesResponse();
 
-                Models = lookups.Models;
-                FabricCategories = lookups.FabricCategories;
-                Mechanisms = lookups.TransformationMechanisms;
+                ApplyDictionaries();
 
-                StorageModules.Clear();
-
-                foreach (var module in lookups.StorageModules)
+                if (Mode == OrderEditorMode.Create || _orderId is null)
                 {
-                    var option = new StorageModuleOption(module);
-                    option.PropertyChanged += (_, _) => UpdateConfigurationPrice();
-                    StorageModules.Add(option);
+                    UpdatePricePreview();
+                    return;
                 }
 
-                SelectedModel = Models.FirstOrDefault();
-                SelectedFabric = FabricCategories.FirstOrDefault();
-                SelectedMechanism = Mechanisms.FirstOrDefault();
-
-                if (Mode == OrderEditorMode.Create)
-                    return;
-
-                var order = await _apiClient.GetAsync<OrderEditor>($"api/orders/{_orderId}");
+                var order = await _apiClient.GetAsync<OrderResponse>($"api/orders/{_orderId}");
 
                 if (order is null)
                 {
-                    ErrorText = "Заказ не найден.";
+                    MessageBox.Show("Заказ не найден.");
                     return;
                 }
 
-                FillFromOrder(order);
+                MapOrder(order);
             }
             catch (Exception ex)
             {
-                ShowError(ex);
+                MessageBox.Show("Произошла ошибка при загрузке заказа: " + ex.Message);
             }
         }
 
-        private void FillFromOrder(OrderEditor order)
+        private void ApplyDictionaries()
         {
-            SelectedClientType = order.ClientType;
-            Phone = order.Phone;
+            ItemEditor.Models = _dict.Models;
+            ItemEditor.FabricCategories = _dict.FabricCategories;
+            ItemEditor.Mechanisms = _dict.TransformationMechanisms;
 
-            Surname = order.Surname ?? string.Empty;
-            Name = order.Name ?? string.Empty;
-            Patronymic = order.Patronymic ?? string.Empty;
+            ItemEditor.StorageModules.Clear();
 
-            CompanyName = order.CompanyName ?? string.Empty;
-            Inn = order.Inn ?? string.Empty;
-            Kpp = order.Kpp ?? string.Empty;
-            ContactSurname = order.ContactSurname ?? string.Empty;
-            ContactName = order.ContactName ?? string.Empty;
-            ContactPatronymic = order.ContactPatronymic ?? string.Empty;
+            foreach (var module in _dict.StorageModules)
+            {
+                var option = new StorageModuleOption(module);
+                option.PropertyChanged += (_, _) => UpdatePricePreview();
+                ItemEditor.StorageModules.Add(option);
+            }
+        }
 
-            DeliveryCity = order.DeliveryCity;
-            DeliveryStreet = order.DeliveryStreet;
-            DeliveryBuilding = order.DeliveryBuilding;
-            DeliveryApartment = order.DeliveryApartment ?? string.Empty;
+        private static string Money(decimal v) => $"{v:N2} ₽";
 
-            Items.Clear();
+        private void UpdatePricePreview()
+        {
+            var e = ItemEditor;
 
-            foreach (var item in order.Items)
-                Items.Add(CreateRow(item));
+            decimal model = e.SelectedModel?.Price ?? 0;
+            decimal fabric = e.SelectedFabric?.Price ?? 0;
+            decimal mechanism = e.SelectedMechanism?.Price ?? 0;
+            decimal modules = e.StorageModules.Where(m => m.IsSelected).Sum(m => m.Item.Price);
+            decimal config = model + fabric + mechanism + modules;
 
-            _orderStatus = order.CurrentStatus;
+            ModelPriceText = e.SelectedModel is null ? "—" : Money(model);
+            FabricPriceText = e.SelectedFabric is null ? "—" : Money(fabric);
+            MechanismPriceText = e.SelectedMechanism is null ? "—" : Money(mechanism);
+            StoragePriceText = Money(modules);
+            ConfigurationTotalText = Money(config);
+            ConfigurationQuantityTotalText = Money(config * e.Quantity);
+        }
+
+        private void UpdateTotal() => TotalText = $"Итого: {OrderItems.Sum(i => i.TotalPrice):N2} ₽";
+
+        private void MapOrder(OrderResponse response)
+        {
+            var order = response.Order;
+
+            _orderEmployeeId = order.IdEmployee;
+
+            MapClient(order.Client);
+
+            MapDelivery(order);
+
+            OrderItems.Clear();
+
+            foreach (var item in order.OrderItem)
+            {
+                OrderItems.Add(MapOrderItem(item));
+            }
+
             UpdateHeader();
         }
 
-        private OrderItemRow CreateRow(OrderItemEditor data)
+        private void MapClient(ClientDto client)
         {
-            var model = Models.FirstOrDefault(m => m.Id == data.IdModel);
-            var fabric = FabricCategories.FirstOrDefault(f => f.Id == data.IdFabricCategory);
-            var mechanism = Mechanisms.FirstOrDefault(m => m.Id == data.IdTransformationMechanism);
-            var modules = StorageModules
-                .Where(s => data.StorageModuleIds.Contains(s.Item.Id))
-                .Select(s => s.Item)
-                .ToList();
+            ClientInfo.SelectedClientType = client.ClientType ?? string.Empty;
+            ClientInfo.Phone = client.Phone ?? string.Empty;
 
-            decimal unitPrice = (model?.Price ?? 0) + (fabric?.Price ?? 0) + (mechanism?.Price ?? 0)
-                                + modules.Sum(m => m.Price);
+            if (client.PhysicalClient is not null)
+            {
+                ClientInfo.Surname = client.PhysicalClient.Surname ?? string.Empty;
+                ClientInfo.Name = client.PhysicalClient.Name ?? string.Empty;
+                ClientInfo.Patronymic = client.PhysicalClient.Patronymic ?? string.Empty;
+            }
 
-            string displayName =
-                $"{model?.Name}, {fabric?.Name}, {mechanism?.Name}, {data.Color}, " +
-                $"{data.Length}×{data.Width}×{data.Height} см";
+            if (client.LegalClient is not null)
+            {
+                ClientInfo.CompanyName = client.LegalClient.CompanyName ?? string.Empty;
+                ClientInfo.Inn = client.LegalClient.Inn ?? string.Empty;
+                ClientInfo.Kpp = client.LegalClient.Kpp ?? string.Empty;
 
-            if (modules.Count > 0)
-                displayName += $" + {string.Join(", ", modules.Select(m => m.Name))}";
+                ClientInfo.ContactSurname =
+                    client.LegalClient.SurnameContactPerson ?? string.Empty;
 
-            return new OrderItemRow(data, displayName, unitPrice * data.Quantity);
+                ClientInfo.ContactName =
+                    client.LegalClient.NameContactPerson ?? string.Empty;
+
+                ClientInfo.ContactPatronymic =
+                    client.LegalClient.PatronymicContactPerson ?? string.Empty;
+            }
         }
 
+        private void MapDelivery(OrderDto order)
+        {
+            DeliveryInfo.DeliveryCity = order.DeliveryCity ?? string.Empty;
+            DeliveryInfo.DeliveryStreet = order.DeliveryStreet ?? string.Empty;
+            DeliveryInfo.DeliveryBuilding = order.DeliveryBuilding ?? string.Empty;
+            DeliveryInfo.DeliveryApartment = order.DeliveryApartment ?? string.Empty;
+        }
 
+        private OrderItemViewModel MapOrderItem(OrderItemConfigurationDto item)
+        {
+            var config = item.Configuration;
+            var selectedIds = config.StorageModules ?? [];
+
+            var itemVm = new OrderItemViewModel
+            {
+                IdOrderItem = item.IdOrderItem,
+                Models = _dict.Models,
+                FabricCategories = _dict.FabricCategories,
+                Mechanisms = _dict.TransformationMechanisms,
+                Color = config.Color ?? "Бежевый",
+                LengthText = config.Length.ToString(),
+                WidthText = config.Width.ToString(),
+                HeightText = config.Height.ToString(),
+                QuantityText = item.Quantity.ToString(),
+                CurrentStatus = item.CurrentStatus ?? "Ожидает производства",
+                PlannedReadyDate = item.PlannedReadyDate,
+                SelectedModel = _dict.Models.FirstOrDefault(m => m.Id == config.IdModel),
+                SelectedFabric = _dict.FabricCategories.FirstOrDefault(f => f.Id == config.IdFabricCategory),
+                SelectedMechanism = _dict.TransformationMechanisms.FirstOrDefault(m => m.Id == config.IdTransformationMechanism)
+            };
+
+            itemVm.DisplayName = itemVm.SelectedModel?.Name ?? $"Модель #{config.IdModel}";
+
+            foreach (var module in _dict.StorageModules)
+            {
+                itemVm.StorageModules.Add(new StorageModuleOption(module)
+                {
+                    IsSelected = selectedIds.Contains(module.Id)
+                });
+            }
+
+            return itemVm;
+        }
 
         [RelayCommand]
         private void AddItem()
         {
-            ErrorText = string.Empty;
+            var editor = ItemEditor;
 
-            if (SelectedModel is null || SelectedFabric is null || SelectedMechanism is null)
+            if (editor.SelectedModel is null ||
+                editor.SelectedFabric is null ||
+                editor.SelectedMechanism is null)
             {
-                ErrorText = "Выберите модель, категорию ткани и механизм трансформации.";
+                MessageBox.Show("Выберите модель, категорию ткани и механизм трансформации.");
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(Color))
+            if (string.IsNullOrWhiteSpace(editor.Color))
             {
-                ErrorText = "Укажите цвет.";
+                MessageBox.Show("Укажите цвет.");
                 return;
             }
 
-            if (!TryParsePositive(LengthText, out int length)
-                || !TryParsePositive(WidthText, out int width)
-                || !TryParsePositive(HeightText, out int height))
+            if (!TryParsePositive(editor.LengthText, out int length) ||
+                !TryParsePositive(editor.WidthText, out int width) ||
+                !TryParsePositive(editor.HeightText, out int height))
             {
-                ErrorText = "Размеры должны быть целыми положительными числами.";
+                MessageBox.Show("Размеры должны быть целыми положительными числами.");
                 return;
             }
 
-            if (!TryParsePositive(QuantityText, out int quantity))
+            if (!TryParsePositive(editor.QuantityText, out int quantity))
             {
-                ErrorText = "Количество должно быть целым числом больше нуля.";
+                MessageBox.Show("Количество должно быть целым числом больше нуля.");
                 return;
             }
 
-            if (PlannedDate is null)
+            bool dateChanged = _editingRow is null || editor.PlannedReadyDate != _editingRow.PlannedReadyDate;
+
+            if (dateChanged && editor.PlannedReadyDate < DateOnly.FromDateTime(DateTime.Today))
             {
-                ErrorText = "Выберите плановую дату готовности.";
+                MessageBox.Show("Плановая дата готовности не может быть в прошлом.");
                 return;
             }
 
-            var plannedDate = DateOnly.FromDateTime(PlannedDate.Value);
-
-            if (_editingRow is null && plannedDate < DateOnly.FromDateTime(DateTime.Today))
+            var item = new OrderItemViewModel
             {
-                ErrorText = "Плановая дата готовности не может быть в прошлом.";
-                return;
-            }
+                IdOrderItem = _editingRow?.IdOrderItem ?? 0,
+                Models = editor.Models,
+                FabricCategories = editor.FabricCategories,
+                Mechanisms = editor.Mechanisms,
 
-            var data = new OrderItemEditor
-            {
-                IdOrderItem = _editingRow?.Data.IdOrderItem ?? 0,
-                IdModel = SelectedModel.Id,
-                IdFabricCategory = SelectedFabric.Id,
-                IdTransformationMechanism = SelectedMechanism.Id,
-                Length = length,
-                Width = width,
-                Height = height,
-                Color = Color.Trim(),
-                StorageModuleIds = StorageModules.Where(s => s.IsSelected).Select(s => s.Item.Id).ToList(),
-                Quantity = quantity,
-                PlannedReadyDate = plannedDate,
-                CurrentStatus = _editingRow?.Data.CurrentStatus ?? string.Empty
+                SelectedModel = editor.SelectedModel,
+                SelectedFabric = editor.SelectedFabric,
+                SelectedMechanism = editor.SelectedMechanism,
+
+                DisplayName = editor.SelectedModel.Name,
+                Color = editor.Color.Trim(),
+
+                LengthText = length.ToString(),
+                WidthText = width.ToString(),
+                HeightText = height.ToString(),
+                QuantityText = quantity.ToString(),
+
+                PlannedReadyDate = editor.PlannedReadyDate,
+                CurrentStatus = _editingRow?.CurrentStatus ?? "Ожидает производства"
             };
 
-            var row = CreateRow(data);
+            foreach (var module in editor.StorageModules)
+            {
+                item.StorageModules.Add(
+                    new StorageModuleOption(module.Item)
+                    {
+                        IsSelected = module.IsSelected
+                    });
+            }
 
             if (_editingRow is null)
             {
-                Items.Add(row);
+                OrderItems.Add(item);
             }
             else
             {
-                Items[Items.IndexOf(_editingRow)] = row;
-                EndItemEdit();
+                int index = OrderItems.IndexOf(_editingRow);
+
+                if (index >= 0)
+                    OrderItems[index] = item;
+
+                _editingRow = null;
+                IsEditingItem = false;
             }
 
-            SelectedItemRow = row;
+            SelectedItem = item;
         }
 
-        private bool HasSelectedItem() => SelectedItemRow is not null;
-
+        private bool HasSelectedItem() => SelectedItem is not null;
 
         [RelayCommand(CanExecute = nameof(HasSelectedItem))]
         private void EditItem()
         {
-            var row = SelectedItemRow!;
-            var data = row.Data;
+            if (SelectedItem is null)
+                return;
 
-            _editingRow = row;
+            _editingRow = SelectedItem;
             IsEditingItem = true;
 
-            SelectedModel = Models.FirstOrDefault(m => m.Id == data.IdModel);
-            SelectedFabric = FabricCategories.FirstOrDefault(f => f.Id == data.IdFabricCategory);
-            SelectedMechanism = Mechanisms.FirstOrDefault(m => m.Id == data.IdTransformationMechanism);
+            var editor = ItemEditor;
+            var item = SelectedItem;
 
-            Color = data.Color;
-            LengthText = data.Length.ToString();
-            WidthText = data.Width.ToString();
-            HeightText = data.Height.ToString();
-            QuantityText = data.Quantity.ToString();
-            PlannedDate = data.PlannedReadyDate.ToDateTime(TimeOnly.MinValue);
+            editor.SelectedModel = item.SelectedModel;
+            editor.SelectedFabric = item.SelectedFabric;
+            editor.SelectedMechanism = item.SelectedMechanism;
 
-            foreach (var module in StorageModules)
-                module.IsSelected = data.StorageModuleIds.Contains(module.Item.Id);
-        }
+            editor.Color = item.Color;
+            editor.LengthText = item.LengthText;
+            editor.WidthText = item.WidthText;
+            editor.HeightText = item.HeightText;
+            editor.QuantityText = item.QuantityText;
+            editor.PlannedReadyDate = item.PlannedReadyDate;
 
-        [RelayCommand]
-        private void CancelItemEdit()
-        {
-            EndItemEdit();
-        }
-
-        [RelayCommand(CanExecute = nameof(HasSelectedItem))]
-        private void RemoveItem()
-        {
-            var row = SelectedItemRow!;
-
-            if (ReferenceEquals(_editingRow, row))
-                EndItemEdit();
-
-            Items.Remove(row);
-        }
-
-        private void EndItemEdit()
-        {
-            _editingRow = null;
-            IsEditingItem = false;
-        }
-
-        private static bool TryParsePositive(string? text, out int value)
-        {
-            return int.TryParse(text, out value) && value > 0;
-        }
-
-        private string? ValidateOrder()
-        {
-            if (string.IsNullOrWhiteSpace(Phone))
-                return "Укажите телефон клиента.";
-
-            if (IsPhysicalClient)
+            foreach (var module in editor.StorageModules)
             {
-                if (string.IsNullOrWhiteSpace(Surname) || string.IsNullOrWhiteSpace(Name))
-                    return "Укажите фамилию и имя клиента.";
+                var selectedModule = item.StorageModules
+                    .FirstOrDefault(m => m.Item.Id == module.Item.Id);
+
+                module.IsSelected = selectedModule?.IsSelected ?? false;
             }
-            else
-            {
-                if (string.IsNullOrWhiteSpace(CompanyName))
-                    return "Укажите название компании.";
-
-                if (Inn.Trim().Length != 10 || !Inn.Trim().All(char.IsAsciiDigit))
-                    return "ИНН должен состоять из 10 цифр.";
-
-                if (!string.IsNullOrWhiteSpace(Kpp)
-                    && (Kpp.Trim().Length != 9 || !Kpp.Trim().All(char.IsAsciiDigit)))
-                    return "КПП должен состоять из 9 цифр.";
-
-                if (string.IsNullOrWhiteSpace(ContactSurname) || string.IsNullOrWhiteSpace(ContactName))
-                    return "Укажите фамилию и имя контактного лица.";
-            }
-
-            if (string.IsNullOrWhiteSpace(DeliveryCity)
-                || string.IsNullOrWhiteSpace(DeliveryStreet)
-                || string.IsNullOrWhiteSpace(DeliveryBuilding))
-                return "Заполните город, улицу и дом в адресе доставки.";
-
-            if (Items.Count == 0)
-                return "Добавьте в заказ хотя бы одну позицию.";
-
-            return null;
-        }
-
-        private OrderEditor BuildRequest()
-        {
-            return new OrderEditor
-            {
-                IdOrder = _orderId,
-                IdEmployee = CurrentUser.User?.IdEmployee ?? 0,
-                ClientType = SelectedClientType,
-                Phone = Phone.Trim(),
-                Surname = Surname,
-                Name = Name,
-                Patronymic = Patronymic,
-                CompanyName = CompanyName,
-                Inn = Inn,
-                Kpp = Kpp,
-                ContactSurname = ContactSurname,
-                ContactName = ContactName,
-                ContactPatronymic = ContactPatronymic,
-                DeliveryCity = DeliveryCity,
-                DeliveryStreet = DeliveryStreet,
-                DeliveryBuilding = DeliveryBuilding,
-                DeliveryApartment = DeliveryApartment,
-                Items = Items.Select(i => i.Data).ToList()
-            };
         }
 
         [RelayCommand]
         private async Task SaveAsync()
         {
-            ErrorText = string.Empty;
-
             string? error = ValidateOrder();
 
             if (error is not null)
             {
-                ErrorText = error;
+                MessageBox.Show(error);
                 return;
             }
 
-            if (Mode == OrderEditorMode.Create && CurrentUser.User is null)
+            if (Mode == OrderEditorMode.Create && _currentUser.User is null)
             {
-                ErrorText = "Не удалось определить сотрудника. Войдите в систему заново.";
+                MessageBox.Show("Не удалось определить сотрудника. Войдите в систему заново.");
                 return;
             }
 
@@ -595,7 +428,7 @@ namespace FurnitureSalon.Application.ViewModels
             try
             {
                 if (Mode == OrderEditorMode.Create)
-                    await _apiClient.PostAsync<OrderEditor, CreateOrderResponse>("api/orders", request);
+                    await _apiClient.PostAsync("api/orders", request);
                 else
                     await _apiClient.PutAsync($"api/orders/{_orderId}", request);
 
@@ -603,7 +436,7 @@ namespace FurnitureSalon.Application.ViewModels
             }
             catch (Exception ex)
             {
-                ShowError(ex);
+                MessageBox.Show("Произошла ошибка при сохранении заказа: " + ex.Message);
             }
         }
 
@@ -611,6 +444,117 @@ namespace FurnitureSalon.Application.ViewModels
         private void Cancel()
         {
             CloseRequested?.Invoke(false);
+        }
+
+        private CreateOrderRequest BuildRequest()
+        {
+            var order = new OrderDto
+            {
+                Client = new ClientDto
+                {
+                    ClientType = ClientInfo.SelectedClientType,
+                    Phone = ClientInfo.Phone.Trim(),
+
+                    PhysicalClient = ClientInfo.SelectedClientType == "Физическое лицо"
+                        ? new PhysicalClientDto
+                        {
+                            Surname = ClientInfo.Surname.Trim(),
+                            Name = ClientInfo.Name.Trim(),
+                            Patronymic = ClientInfo.Patronymic
+                        }
+                        : null,
+
+                    LegalClient = ClientInfo.SelectedClientType == "Юридическое лицо"
+                        ? new LegalClientDto
+                        {
+                            CompanyName = ClientInfo.CompanyName.Trim(),
+                            Inn = ClientInfo.Inn.Trim(),
+                            Kpp = ClientInfo.Kpp,
+                            SurnameContactPerson = ClientInfo.ContactSurname.Trim(),
+                            NameContactPerson = ClientInfo.ContactName.Trim(),
+                            PatronymicContactPerson = ClientInfo.ContactPatronymic
+                        }
+                        : null
+                },
+
+                IdEmployee = Mode == OrderEditorMode.Create ? _currentUser.User!.IdEmployee : _orderEmployeeId,
+
+                OrderItem = OrderItems.Select(item => new OrderItemConfigurationDto
+                {
+                    IdOrderItem = item.IdOrderItem,
+                    Configuration = new ConfigurationDto
+                    {
+                        IdModel = item.SelectedModel!.Id,
+                        IdFabricCategory = item.SelectedFabric!.Id,
+                        IdTransformationMechanism = item.SelectedMechanism!.Id,
+                        StorageModules = item.StorageModules
+                            .Where(module => module.IsSelected)
+                            .Select(module => module.Item.Id)
+                            .ToList(),
+
+                        Length = int.Parse(item.LengthText),
+                        Width = int.Parse(item.WidthText),
+                        Height = int.Parse(item.HeightText),
+                        Color = item.Color.Trim()
+                    },
+
+                    PlannedReadyDate = item.PlannedReadyDate,
+                    Quantity = item.Quantity,
+                    CurrentStatus = item.CurrentStatus
+                }).ToList(),
+
+                DeliveryCity = DeliveryInfo.DeliveryCity.Trim(),
+                DeliveryStreet = DeliveryInfo.DeliveryStreet.Trim(),
+                DeliveryBuilding = DeliveryInfo.DeliveryBuilding.Trim(),
+                DeliveryApartment = DeliveryInfo.DeliveryApartment
+            };
+
+            return new CreateOrderRequest
+            {
+                Order = order
+            };
+        }
+        private bool TryParsePositive(string? value, out int result)
+        {
+            return int.TryParse(value, out result) && result > 0;
+        }
+        private string? ValidateOrder()
+        {
+            if (string.IsNullOrWhiteSpace(ClientInfo.Phone))
+                return "Укажите телефон клиента.";
+
+            if (ClientInfo.IsPhysicalClient)
+            {
+                if (string.IsNullOrWhiteSpace(ClientInfo.Surname) || string.IsNullOrWhiteSpace(ClientInfo.Name))
+                    return "Укажите фамилию и имя клиента.";
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(ClientInfo.CompanyName))
+                    return "Укажите название компании.";
+
+                if (ClientInfo.Inn.Trim().Length != 10 || !ClientInfo.Inn.Trim().All(char.IsAsciiDigit))
+                    return "ИНН должен состоять из 10 цифр.";
+
+                if (!string.IsNullOrWhiteSpace(ClientInfo.Kpp) && (ClientInfo.Kpp.Trim().Length != 9 ||
+                    !ClientInfo.Kpp.Trim().All(char.IsAsciiDigit)))
+                    return "КПП должен состоять из 9 цифр.";
+
+                if (string.IsNullOrWhiteSpace(ClientInfo.ContactSurname) || string.IsNullOrWhiteSpace(ClientInfo.ContactName))
+                    return "Укажите фамилию и имя контактного лица.";
+            }
+
+            if (string.IsNullOrWhiteSpace(DeliveryInfo.DeliveryCity) ||
+                string.IsNullOrWhiteSpace(DeliveryInfo.DeliveryStreet) ||
+                string.IsNullOrWhiteSpace(DeliveryInfo.DeliveryBuilding))
+            {
+                return "Заполните город, улицу и дом в адресе доставки.";
+            }
+
+            if (OrderItems.Count == 0)
+                return "Добавьте в заказ хотя бы одну позицию.";
+
+            return null;
         }
     }
 }

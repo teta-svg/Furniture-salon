@@ -27,7 +27,6 @@ namespace FurnitureSalon.Api.Repositories
                 .ToListAsync();
         }
 
-
         public async Task<List<Order>> SearchOrdersAsync(string? searchText)
         {
             var query = _context.Orders
@@ -90,12 +89,10 @@ namespace FurnitureSalon.Api.Repositories
                 .FirstOrDefaultAsync(o => o.IdOrder == id);
         }
 
-        public async Task<int> CreateOrderAsync(Order order)
+        public async Task CreateOrderAsync(Order order)
         {
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
-
-            return order.IdOrder;
         }
 
         public async Task UpdateOrderAsync(Order order, IReadOnlyCollection<OrderItem> removedItems)
@@ -103,67 +100,36 @@ namespace FurnitureSalon.Api.Repositories
             _context.OrderItems.RemoveRange(removedItems);
             await _context.SaveChangesAsync();
         }
-
         public async Task<List<Model>> GetModelsAsync()
         {
-            return await _context.Models.AsNoTracking().OrderBy(m => m.ModelName).ToListAsync();
+            return await _context.Models
+                .AsNoTracking()
+                .OrderBy(m => m.ModelName)
+                .ToListAsync();
         }
 
         public async Task<List<FabricCategory>> GetFabricCategoriesAsync()
         {
-            return await _context.FabricCategories.AsNoTracking().OrderBy(f => f.Name).ToListAsync();
+            return await _context.FabricCategories
+                .AsNoTracking()
+                .OrderBy(f => f.Name)
+                .ToListAsync();
         }
 
         public async Task<List<TransformationMechanism>> GetTransformationMechanismsAsync()
         {
-            return await _context.TransformationMechanisms.AsNoTracking().OrderBy(m => m.Name).ToListAsync();
+            return await _context.TransformationMechanisms
+                .AsNoTracking()
+                .OrderBy(m => m.Name)
+                .ToListAsync();
         }
 
         public async Task<List<StorageModule>> GetStorageModulesAsync()
         {
-            return await _context.StorageModules.AsNoTracking().OrderBy(m => m.ModuleName).ToListAsync();
-        }
-
-        public async Task<FurnitureConfiguration> GetOrCreateConfigurationAsync(
-            int idModel, int idFabricCategory, int idTransformationMechanism,
-            int length, int width, int height, string color,
-            IReadOnlyCollection<int> storageModuleIds)
-        {
-            var moduleIds = storageModuleIds.Distinct().OrderBy(id => id).ToList();
-
-            var candidates = await _context.FurnitureConfigurations
-                .Include(c => c.FurnitureConfigurationStorageModules)
-                .Where(c => c.IdModel == idModel
-                         && c.IdFabricCategory == idFabricCategory
-                         && c.IdTransformationMechanism == idTransformationMechanism
-                         && c.Length == length
-                         && c.Width == width
-                         && c.Height == height
-                         && c.Color == color)
+            return await _context.StorageModules
+                .AsNoTracking()
+                .OrderBy(m => m.ModuleName)
                 .ToListAsync();
-
-            var existing = candidates.FirstOrDefault(c =>
-                c.FurnitureConfigurationStorageModules
-                    .Select(m => m.IdStorageModule)
-                    .OrderBy(id => id)
-                    .SequenceEqual(moduleIds));
-
-            if (existing != null)
-                return existing;
-
-            return new FurnitureConfiguration
-            {
-                IdModel = idModel,
-                IdFabricCategory = idFabricCategory,
-                IdTransformationMechanism = idTransformationMechanism,
-                Length = length,
-                Width = width,
-                Height = height,
-                Color = color,
-                FurnitureConfigurationStorageModules = moduleIds
-                    .Select(id => new FurnitureConfigurationStorageModule { IdStorageModule = id })
-                    .ToList()
-            };
         }
     }
 }

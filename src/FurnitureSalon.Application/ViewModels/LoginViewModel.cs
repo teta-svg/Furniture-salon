@@ -11,11 +11,13 @@ namespace FurnitureSalon.Application.ViewModels
     {
         private readonly ApiClient _apiClient;
         private readonly IWindowService _windowService;
+        private readonly ICurrentUser _currentUser;
 
-        public LoginViewModel(ApiClient apiClient, IWindowService windowService)
+        public LoginViewModel(ApiClient apiClient, IWindowService windowService, ICurrentUser currentUser)
         {
             _apiClient = apiClient;
             _windowService = windowService;
+            _currentUser = currentUser;
         }
 
         [ObservableProperty]
@@ -71,11 +73,11 @@ namespace FurnitureSalon.Application.ViewModels
                     return;
                 }
 
-                CurrentUser.Set(response);
+                _currentUser.User = response;
 
                 ErrorText = string.Empty;
 
-                _windowService.Show<MainWindow>(closeCurrent: true);
+                _windowService.ShowWindow<MainWindow>(closeCurrent: true);
             }
             catch (HttpRequestException)
             {
