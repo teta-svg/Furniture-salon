@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using FurnitureSalon.Application.Shared;
 using FurnitureSalon.Application.Views;
 using FurnitureSalon.Core.DTO.Order;
+using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Windows;
 
@@ -30,7 +31,7 @@ namespace FurnitureSalon.Application.ViewModels
         }
 
         [ObservableProperty]
-        private List<OrderListResponse> orders = [];
+        private ObservableCollection<OrderListResponse> orders = [];
 
         [ObservableProperty]
         private string? searchText;
@@ -69,7 +70,7 @@ namespace FurnitureSalon.Application.ViewModels
             {
                 var response = await execute();
 
-                Orders = response ?? [];
+                Orders = new ObservableCollection<OrderListResponse>(response ?? []);
             }
             catch (HttpRequestException)
             {
@@ -105,30 +106,33 @@ namespace FurnitureSalon.Application.ViewModels
         }
 
         [RelayCommand]
-        private void CreateOrder()
+        private async Task CreateOrder()
         {
-            OpenConfigWindow(OrderEditorMode.Create, null);
+            await OpenConfigWindowAsync(OrderEditorMode.Create, null);
         }
 
         private bool HasSelectedOrder() => SelectedOrder is not null;
 
         [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
-        private void ViewOrder()
+        private async Task ViewOrder()
         {
-           OpenConfigWindow(OrderEditorMode.View, SelectedOrder?.IdOrder);
+           await OpenConfigWindowAsync(OrderEditorMode.View, SelectedOrder?.IdOrder);
         }
 
         [RelayCommand(CanExecute = nameof(HasSelectedOrder))]
-        private void EditOrder()
+        private async Task EditOrder()
         {
-            OpenConfigWindow(OrderEditorMode.Edit, SelectedOrder?.IdOrder);
+            await OpenConfigWindowAsync(OrderEditorMode.Edit, SelectedOrder?.IdOrder);
         }
 
-        private void OpenConfigWindow(OrderEditorMode editorMode, int? idOrder)
+        private async Task OpenConfigWindowAsync(OrderEditorMode editorMode, int? idOrder)
         {
             _configHelper.EditorMode = editorMode;
             _configHelper.IdOrder = idOrder;
+
             _windowService.ShowWindow<ConfigWindow>();
+
+            await LoadOrdersAsync();
         }
     }
 }

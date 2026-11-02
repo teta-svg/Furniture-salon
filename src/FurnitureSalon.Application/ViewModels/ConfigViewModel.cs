@@ -43,8 +43,10 @@ namespace FurnitureSalon.Application.ViewModels
 
         partial void OnModeChanged(OrderEditorMode value) => UpdateHeader();
 
-        [ObservableProperty] private string _title = string.Empty;
-        [ObservableProperty] private string _subtitle = string.Empty;
+        [ObservableProperty] 
+        private string _title = string.Empty;
+        [ObservableProperty] 
+        private string _subtitle = string.Empty;
 
         public bool CanEdit => Mode != OrderEditorMode.View;
         public bool IsClientTypeEditable => Mode == OrderEditorMode.Create;
