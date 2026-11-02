@@ -25,7 +25,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FurnitureSalonDbContext>();
-    db.Database.Migrate();
+    if (!db.Database.CanConnect())
+    {
+        db.Database.Migrate();
+    }
 }
 
 if (app.Environment.IsDevelopment())
