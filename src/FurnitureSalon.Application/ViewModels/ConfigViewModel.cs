@@ -523,6 +523,10 @@ namespace FurnitureSalon.Application.ViewModels
             if (string.IsNullOrWhiteSpace(ClientInfo.Phone))
                 return "Укажите телефон клиента.";
 
+            var phone = ClientInfo.Phone.Trim();
+            if (phone.Length != 11 || !phone.All(char.IsAsciiDigit) || !phone.StartsWith('8'))
+                return "Неверный формат номера телефона. Пример: 89991234567";
+
             if (ClientInfo.IsPhysicalClient)
             {
                 if (string.IsNullOrWhiteSpace(ClientInfo.Surname) || string.IsNullOrWhiteSpace(ClientInfo.Name))
