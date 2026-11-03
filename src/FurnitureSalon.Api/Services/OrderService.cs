@@ -456,6 +456,10 @@ namespace FurnitureSalon.Api.Services
             if (string.IsNullOrWhiteSpace(client.Phone))
                 throw new ArgumentException("Не указан телефон клиента.");
 
+            var phone = client.Phone.Trim();
+            if (phone.Length != 11 || !phone.All(char.IsAsciiDigit) || !phone.StartsWith('8'))
+                throw new ArgumentException("Неверный формат номера телефона. Пример: 89991234567");
+
             if (client.ClientType == PhysicalClientType)
             {
                 var physical = client.PhysicalClient
